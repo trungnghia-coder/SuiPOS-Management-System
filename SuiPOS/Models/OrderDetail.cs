@@ -5,12 +5,21 @@ namespace SuiPOS.Models
     public class OrderDetail
     {
         [Key]
-        public long Id { get; set; }
-        public long OrderId { get; set; }
-        public int ProductId { get; set; }
+        public Guid Id { get; set; }
+
+        [Required]
+        public Guid OrderId { get; set; }
+
+        [Required]
+        public Guid ProductVariantId { get; set; }
+
+        [Required, Range(1, int.MaxValue)]
         public int Quantity { get; set; }
+
+        [Required]
         public decimal UnitPrice { get; set; }
+
         public Order? Order { get; set; }
-        public Product? Product { get; set; }
+        public ProductVariant? ProductVariant { get; set; }
     }
 }
