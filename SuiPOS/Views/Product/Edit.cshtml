@@ -1,0 +1,136 @@
+@model SuiPOS.ViewModels.ProductInputVM
+
+@{
+    ViewData["Title"] = "Ch?nh s?a s?n ph?m";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-pencil"></i> Ch?nh s?a s?n ph?m</h2>
+        </div>
+        <div class="col text-end">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Quay l?i
+            </a>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Thông tin c? b?n</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Tên s?n ph?m <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label">Danh m?c <span class="text-danger">*</span></label>
+                            <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select">
+                                <option value="">-- Ch?n danh m?c --</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label asp-for="ImageFile" class="form-label">Hình ?nh m?i</label>
+                            <input asp-for="ImageFile" type="file" class="form-control" accept="image/*" />
+                            <small class="text-muted">?? tr?ng n?u không mu?n thay ??i</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(Model.ExistingImageUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Hình ?nh hi?n t?i</label>
+                                <div>
+                                    <img src="@Model.ExistingImageUrl" alt="Current" 
+                                         class="img-thumbnail" style="max-height: 100px;" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Ch?nh s?a Variants (Ch?c n?ng ?ang phát tri?n)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>L?u ý:</strong> Hi?n t?i ch?a h? tr? ch?nh s?a variants. 
+                    B?n ch? có th? c?p nh?t thông tin c? b?n c?a s?n ph?m.
+                </div>
+
+                @if (Model.Variants != null && Model.Variants.Any())
+                {
+                    <h6>Danh sách variants hi?n t?i:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>Giá</th>
+                                    <th>T?n kho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.Variants.Count; i++)
+                                {
+                                    <tr>
+                                        <td>
+                                            <code>@Model.Variants[i].SKU</code>
+                                            <input type="hidden" name="Variants[@i].SKU" value="@Model.Variants[i].SKU" />
+                                        </td>
+                                        <td>
+                                            @Model.Variants[i].Price.ToString("N0") ?
+                                            <input type="hidden" name="Variants[@i].Price" value="@Model.Variants[i].Price" />
+                                        </td>
+                                        <td>
+                                            @Model.Variants[i].Stock
+                                            <input type="hidden" name="Variants[@i].Stock" value="@Model.Variants[i].Stock" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button type="submit" class="btn btn-warning btn-lg">
+                <i class="bi bi-save"></i> C?p nh?t s?n ph?m
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> H?y
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

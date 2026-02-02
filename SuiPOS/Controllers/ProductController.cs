@@ -1,0 +1,283 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using SuiPOS.Data;
+using SuiPOS.Services.Interfaces;
+using SuiPOS.ViewModels;
+
+namespace SuiPOS.Controllers
+{
+    public class ProductController : Controller
+    {
+        private readonly IProductService _productService;
+        private readonly SuiPosDbContext _context;
+
+        public ProductController(IProductService productService, SuiPosDbContext context)
+        {
+            _productService = productService;
+            _context = context;
+        }
+
+        // GET: /Product
+        public async Task<IActionResult> Index()
+        {
+            try
+            {
+                var products = await _productService.GetAllAsync();
+                return View(products);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Lỗi khi tải danh sách sản phẩm: {ex.Message}";
+                return View(new List<ProductVM>());
+            }
+        }
+
+        // GET: /Product/Details/5
+        public async Task<IActionResult> Details(Guid id)
+        {
+            try
+            {
+                var product = await _productService.GetByIdAsync(id);
+                if (product == null)
+                {
+                    TempData["Error"] = "Không tìm thấy sản phẩm!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                return View(product);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Lỗi khi tải sản phẩm: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // GET: /Product/Create
+        public async Task<IActionResult> Create()
+        {
+            await LoadDropdownData();
+            return View(new ProductInputVM());
+        }
+
+        // POST: /Product/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(ProductInputVM model)
+        {
+            // Validate SKU unique
+            if (model.Variants != null && model.Variants.Any())
+            {
+                var duplicateSKUs = model.Variants
+                    .GroupBy(v => v.SKU)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key);
+
+                if (duplicateSKUs.Any())
+                {
+                    ModelState.AddModelError("Variants", $"Mã SKU bị trùng: {string.Join(", ", duplicateSKUs)}");
+                }
+
+                // Kiểm tra SKU đã tồn tại trong DB
+                var existingSKUs = await _context.ProductVariants
+                    .Where(pv => model.Variants.Select(v => v.SKU).Contains(pv.SKU))
+                    .Select(pv => pv.SKU)
+                    .ToListAsync();
+
+                if (existingSKUs.Any())
+                {
+                    ModelState.AddModelError("Variants", $"Mã SKU đã tồn tại trong hệ thống: {string.Join(", ", existingSKUs)}");
+                }
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await LoadDropdownData();
+                return View(model);
+            }
+
+            try
+            {
+                var result = await _productService.CreateAsync(model);
+
+                if (result)
+                {
+                    TempData["Success"] = "Thêm sản phẩm thành công!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                ModelState.AddModelError("", "Không thể lưu sản phẩm. Vui lòng thử lại.");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Lỗi: {ex.Message}");
+            }
+
+            await LoadDropdownData();
+            return View(model);
+        }
+
+        // GET: /Product/Edit/5
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            try
+            {
+                var product = await _productService.GetByIdAsync(id);
+                if (product == null)
+                {
+                    TempData["Error"] = "Không tìm thấy sản phẩm!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Map ProductVM sang ProductInputVM
+                var inputModel = new ProductInputVM
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    CategoryId = Guid.Empty, // Cần lấy từ Product entity
+                    ExistingImageUrl = product.ImageUrl,
+                    Variants = product.Variants.Select(v => new VariantInputVM
+                    {
+                        SKU = v.SKU,
+                        Price = v.Price,
+                        Stock = v.Stock,
+                        SelectedAttributeValueIds = new List<Guid>() // Cần load từ DB
+                    }).ToList()
+                };
+
+                await LoadDropdownData();
+                return View(inputModel);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Lỗi khi tải sản phẩm: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // POST: /Product/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Guid id, ProductInputVM model)
+        {
+            if (id != model.Id)
+            {
+                return BadRequest();
+            }
+
+            // Validate ít nhất 1 variant
+            if (model.Variants == null || !model.Variants.Any())
+            {
+                ModelState.AddModelError("Variants", "Sản phẩm phải có ít nhất 1 phiên bản (variant)");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await LoadDropdownData();
+                return View(model);
+            }
+
+            try
+            {
+                var result = await _productService.UpdateAsync(id, model);
+
+                if (result)
+                {
+                    TempData["Success"] = "Cập nhật sản phẩm thành công!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                ModelState.AddModelError("", "Không thể cập nhật sản phẩm. Vui lòng thử lại.");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Lỗi: {ex.Message}");
+            }
+
+            await LoadDropdownData();
+            return View(model);
+        }
+
+        // POST: /Product/Delete/5 (AJAX)
+        [HttpPost]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var success = await _productService.DeleteAsync(id);
+
+                if (success)
+                {
+                    return Json(new { success = true, message = "Xóa sản phẩm thành công!" });
+                }
+
+                return Json(new { success = false, message = "Không tìm thấy sản phẩm!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
+        // GET: /Product/GetCategories (AJAX)
+        [HttpGet]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var categories = await _context.Categories
+                    .Select(c => new { id = c.Id, name = c.Name })
+                    .ToListAsync();
+                return Json(categories);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // GET: /Product/GetAttributes (AJAX)
+        [HttpGet]
+        public async Task<IActionResult> GetAttributes()
+        {
+            try
+            {
+                var attributes = await _context.ProductAttributes
+                    .Include(a => a.Values)
+                    .Select(a => new
+                    {
+                        id = a.Id,
+                        name = a.Name,
+                        values = a.Values.Select(v => new
+                        {
+                            id = v.Id,
+                            value = v.Value
+                        }).ToList()
+                    })
+                    .ToListAsync();
+                return Json(attributes);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Helper method để load dropdown data
+        private async Task LoadDropdownData()
+        {
+            ViewBag.Categories = new SelectList(
+                await _context.Categories.ToListAsync(),
+                "Id",
+                "Name"
+            );
+
+            // Load attributes cho JavaScript
+            var attributes = await _context.ProductAttributes
+                .Include(a => a.Values)
+                .ToListAsync();
+            ViewBag.Attributes = attributes;
+        }
+    }
+}

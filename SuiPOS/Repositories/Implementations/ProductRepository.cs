@@ -19,17 +19,20 @@ namespace SuiPOS.Repositories.Implementations
             await _context.Products.AddAsync(product);
         }
 
-        public void Delete(Product product)
+        public async Task Delete(Product product)
         {
             _context.Products.Remove(product);
         }
 
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
-            return await _context.Products.ToListAsync();
+            return await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .ToListAsync();
         }
 
-        public Task<Product?> GetByIdAsync(int id)
+        public Task<Product?> GetByIdAsync(Guid id)
         {
             return _context.Products.FindAsync(id).AsTask();
         }
@@ -39,7 +42,7 @@ namespace SuiPOS.Repositories.Implementations
             return (await _context.SaveChangesAsync() >= 0);
         }
 
-        public void Update(Product product)
+        public async Task Update(Product product)
         {
             _context.Products.Update(product);
         }

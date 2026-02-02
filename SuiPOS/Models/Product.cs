@@ -15,6 +15,9 @@ namespace SuiPOS.Models
 
         public Category? Category { get; set; }
 
+        [StringLength(500)]
+        public string? ImageUrl { get; set; }
+
         public List<ProductVariant> Variants { get; set; } = new();
     }
 }
