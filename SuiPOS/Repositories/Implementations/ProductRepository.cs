@@ -34,7 +34,11 @@ namespace SuiPOS.Repositories.Implementations
 
         public Task<Product?> GetByIdAsync(Guid id)
         {
-            return _context.Products.FindAsync(id).AsTask();
+            return _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                    .ThenInclude(v => v.SelectedValues)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<bool> SaveChangesAsync()

@@ -1,7 +1,7 @@
 @model SuiPOS.ViewModels.ProductVM
 
 @{
-    ViewData["Title"] = "Chi ti?t s?n ph?m";
+    ViewData["Title"] = "Product Details";
 }
 
 <div class="container py-4">
@@ -9,18 +9,18 @@
         <div class="col">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-action="Index">S?n ph?m</a></li>
-                    <li class="breadcrumb-item active">Chi ti?t</li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Products</a></li>
+                    <li class="breadcrumb-item active">Details</li>
                 </ol>
             </nav>
-            <h2><i class="bi bi-info-circle"></i> Chi ti?t s?n ph?m</h2>
+            <h2><i class="bi bi-info-circle"></i> Product Details</h2>
         </div>
         <div class="col text-end">
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                <i class="bi bi-pencil"></i> Ch?nh s?a
+                <i class="bi bi-pencil"></i> Edit
             </a>
             <a asp-action="Index" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Quay l?i
+                <i class="bi bi-arrow-left"></i> Back
             </a>
         </div>
     </div>
@@ -51,7 +51,7 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Danh sách phiên b?n (Variants)</h5>
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Product Variants</h5>
                 </div>
                 <div class="card-body">
                     @if (Model.Variants != null && Model.Variants.Any())
@@ -61,9 +61,9 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>SKU</th>
-                                        <th>Thu?c tính</th>
-                                        <th>Giá</th>
-                                        <th>T?n kho</th>
+                                        <th>Attributes</th>
+                                        <th>Price</th>
+                                        <th>Stock</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -94,7 +94,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger">H?t hàng</span>
+                                                    <span class="badge bg-danger">Out of Stock</span>
                                                 }
                                             </td>
                                         </tr>
@@ -107,7 +107,7 @@
                     {
                         <div class="text-center py-4">
                             <i class="bi bi-inbox fs-1 text-muted"></i>
-                            <p class="text-muted">Ch?a có phiên b?n nào</p>
+                            <p class="text-muted">No variants yet</p>
                         </div>
                     }
                 </div>
@@ -115,4 +115,5 @@
         </div>
     </div>
 </div>
+
 

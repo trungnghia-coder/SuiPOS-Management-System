@@ -1,17 +1,17 @@
 @model SuiPOS.ViewModels.ProductInputVM
 
 @{
-    ViewData["Title"] = "Ch?nh s?a s?n ph?m";
+    ViewData["Title"] = "Edit Product";
 }
 
 <div class="container py-4">
     <div class="row mb-4">
         <div class="col">
-            <h2><i class="bi bi-pencil"></i> Ch?nh s?a s?n ph?m</h2>
+            <h2><i class="bi bi-pencil"></i> Edit Product</h2>
         </div>
         <div class="col text-end">
             <a asp-action="Index" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Quay l?i
+                <i class="bi bi-arrow-left"></i> Back
             </a>
         </div>
     </div>
@@ -22,22 +22,22 @@
 
         <div class="card shadow mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Thông tin c? b?n</h5>
+                <h5 class="mb-0">Basic Information</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label asp-for="Name" class="form-label">Tên s?n ph?m <span class="text-danger">*</span></label>
+                            <label asp-for="Name" class="form-label">Product Name <span class="text-danger">*</span></label>
                             <input asp-for="Name" class="form-control" />
                             <span asp-validation-for="Name" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label asp-for="CategoryId" class="form-label">Danh m?c <span class="text-danger">*</span></label>
+                            <label asp-for="CategoryId" class="form-label">Category <span class="text-danger">*</span></label>
                             <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select">
-                                <option value="">-- Ch?n danh m?c --</option>
+                                <option value="">-- Select Category --</option>
                             </select>
                             <span asp-validation-for="CategoryId" class="text-danger"></span>
                         </div>
@@ -47,16 +47,16 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label asp-for="ImageFile" class="form-label">Hình ?nh m?i</label>
+                            <label asp-for="ImageFile" class="form-label">New Image</label>
                             <input asp-for="ImageFile" type="file" class="form-control" accept="image/*" />
-                            <small class="text-muted">?? tr?ng n?u không mu?n thay ??i</small>
+                            <small class="text-muted">Leave empty if you don't want to change</small>
                         </div>
                     </div>
                     <div class="col-md-6">
                         @if (!string.IsNullOrEmpty(Model.ExistingImageUrl))
                         {
                             <div class="mb-3">
-                                <label class="form-label">Hình ?nh hi?n t?i</label>
+                                <label class="form-label">Current Image</label>
                                 <div>
                                     <img src="@Model.ExistingImageUrl" alt="Current" 
                                          class="img-thumbnail" style="max-height: 100px;" />
@@ -69,62 +69,93 @@
         </div>
 
         <div class="card shadow mb-4">
-            <div class="card-header bg-warning text-dark">
+            <div class="card-header bg-info text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    Ch?nh s?a Variants (Ch?c n?ng ?ang phát tri?n)
+                    <i class="bi bi-list-ul"></i> 
+                    Product Variants
                 </h5>
             </div>
             <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    <strong>L?u ý:</strong> Hi?n t?i ch?a h? tr? ch?nh s?a variants. 
-                    B?n ch? có th? c?p nh?t thông tin c? b?n c?a s?n ph?m.
+                <div id="variants-container">
+                    @if (Model.Variants != null && Model.Variants.Any())
+                    {
+                        for (int i = 0; i < Model.Variants.Count; i++)
+                        {
+                            <div class="card mb-3 variant-item" id="variant-@i">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label>SKU <span class="text-danger">*</span></label>
+                                            <input type="text" name="Variants[@i].SKU" 
+                                                   class="form-control" 
+                                                   value="@Model.Variants[i].SKU" 
+                                                   required />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Price <span class="text-danger">*</span></label>
+                                            <input type="number" name="Variants[@i].Price" 
+                                                   class="form-control" 
+                                                   value="@Model.Variants[i].Price" 
+                                                   min="0" step="1000" required />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Stock <span class="text-danger">*</span></label>
+                                            <input type="number" name="Variants[@i].Stock" 
+                                                   class="form-control" 
+                                                   value="@Model.Variants[i].Stock" 
+                                                   min="0" required />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>&nbsp;</label>
+                                            <button type="button" class="btn btn-danger w-100" 
+                                                    onclick="removeVariant(@i)">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3" id="attributes-@i">
+                                        <label>Attributes (select at least 1)</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var attr in ViewBag.Attributes)
+                                            {
+                                                foreach (var val in attr.Values)
+                                                {
+                                                    var isChecked = Model.Variants[i].SelectedAttributeValueIds.Contains(val.Id);
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               name="Variants[@i].SelectedAttributeValueIds" 
+                                                               value="@val.Id" 
+                                                               id="attr_@(i)_@val.Id"
+                                                               @(isChecked ? "checked" : "") />
+                                                        <label class="form-check-label" for="attr_@(i)_@val.Id">
+                                                            @attr.Name: @val.Value
+                                                        </label>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No variants yet. Add at least one variant.</p>
+                    }
                 </div>
-
-                @if (Model.Variants != null && Model.Variants.Any())
-                {
-                    <h6>Danh sách variants hi?n t?i:</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>SKU</th>
-                                    <th>Giá</th>
-                                    <th>T?n kho</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for (int i = 0; i < Model.Variants.Count; i++)
-                                {
-                                    <tr>
-                                        <td>
-                                            <code>@Model.Variants[i].SKU</code>
-                                            <input type="hidden" name="Variants[@i].SKU" value="@Model.Variants[i].SKU" />
-                                        </td>
-                                        <td>
-                                            @Model.Variants[i].Price.ToString("N0") ?
-                                            <input type="hidden" name="Variants[@i].Price" value="@Model.Variants[i].Price" />
-                                        </td>
-                                        <td>
-                                            @Model.Variants[i].Stock
-                                            <input type="hidden" name="Variants[@i].Stock" value="@Model.Variants[i].Stock" />
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+                <button type="button" class="btn btn-success" onclick="addVariant()">
+                    <i class="bi bi-plus-circle"></i> Add Variant
+                </button>
             </div>
         </div>
 
         <div class="text-end">
             <button type="submit" class="btn btn-warning btn-lg">
-                <i class="bi bi-save"></i> C?p nh?t s?n ph?m
+                <i class="bi bi-save"></i> Update Product
             </button>
             <a asp-action="Index" class="btn btn-secondary btn-lg">
-                <i class="bi bi-x-circle"></i> H?y
+                <i class="bi bi-x-circle"></i> Cancel
             </a>
         </div>
     </form>
@@ -132,5 +163,95 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        let variantIndex = @(Model.Variants?.Count ?? 0);
+        let attributes = [];
+
+        $(document).ready(function() {
+            loadAttributes();
+        });
+
+        function loadAttributes() {
+            $.get('@Url.Action("GetAttributes", "Product")', function(data) {
+                attributes = data;
+            });
+        }
+
+        function addVariant() {
+            const html = `
+                <div class="card mb-3 variant-item" id="variant-${variantIndex}">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label>SKU <span class="text-danger">*</span></label>
+                                <input type="text" name="Variants[${variantIndex}].SKU" 
+                                       class="form-control" placeholder="AT-001" required />
+                            </div>
+                            <div class="col-md-3">
+                                <label>Price <span class="text-danger">*</span></label>
+                                <input type="number" name="Variants[${variantIndex}].Price" 
+                                       class="form-control" min="0" step="1000" required />
+                            </div>
+                            <div class="col-md-3">
+                                <label>Stock <span class="text-danger">*</span></label>
+                                <input type="number" name="Variants[${variantIndex}].Stock" 
+                                       class="form-control" min="0" value="0" required />
+                            </div>
+                            <div class="col-md-3">
+                                <label>&nbsp;</label>
+                                <button type="button" class="btn btn-danger w-100" 
+                                        onclick="removeVariant(${variantIndex})">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3" id="attributes-${variantIndex}">
+                            <label>Attributes (select at least 1)</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <!-- Attributes will be loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#variants-container').append(html);
+            loadAttributesForVariant(variantIndex);
+            variantIndex++;
+        }
+
+        function loadAttributesForVariant(index) {
+            if (attributes.length === 0) {
+                $('#attributes-' + index).html('<p class="text-warning">No attributes available</p>');
+                return;
+            }
+
+            let html = '<div class="d-flex flex-wrap gap-2">';
+            attributes.forEach(attr => {
+                attr.values.forEach(val => {
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="Variants[${index}].SelectedAttributeValueIds" 
+                                   value="${val.id}" 
+                                   id="attr_${index}_${val.id}">
+                            <label class="form-check-label" for="attr_${index}_${val.id}">
+                                ${attr.name}: ${val.value}
+                            </label>
+                        </div>
+                    `;
+                });
+            });
+            html += '</div>';
+            $('#attributes-' + index).html(html);
+        }
+
+        function removeVariant(index) {
+            if (confirm('Delete this variant?')) {
+                $('#variant-' + index).remove();
+            }
+        }
+    </script>
 }
 

@@ -76,10 +76,10 @@ namespace SuiPOS.Controllers
 
                 if (duplicateSKUs.Any())
                 {
-                    ModelState.AddModelError("Variants", $"Mã SKU bị trùng: {string.Join(", ", duplicateSKUs)}");
+                    ModelState.AddModelError("Variants", $"Duplicate SKU: {string.Join(", ", duplicateSKUs)}");
                 }
 
-                // Kiểm tra SKU đã tồn tại trong DB
+                // Check if SKU already exists in DB
                 var existingSKUs = await _context.ProductVariants
                     .Where(pv => model.Variants.Select(v => v.SKU).Contains(pv.SKU))
                     .Select(pv => pv.SKU)
@@ -87,7 +87,7 @@ namespace SuiPOS.Controllers
 
                 if (existingSKUs.Any())
                 {
-                    ModelState.AddModelError("Variants", $"Mã SKU đã tồn tại trong hệ thống: {string.Join(", ", existingSKUs)}");
+                    ModelState.AddModelError("Variants", $"SKU already exists in system: {string.Join(", ", existingSKUs)}");
                 }
             }
 
@@ -123,26 +123,32 @@ namespace SuiPOS.Controllers
         {
             try
             {
-                var product = await _productService.GetByIdAsync(id);
+                // Get product from database with Category and Variants
+                var product = await _context.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.Variants)
+                        .ThenInclude(v => v.SelectedValues)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
                 if (product == null)
                 {
-                    TempData["Error"] = "Không tìm thấy sản phẩm!";
+                    TempData["Error"] = "Product not found!";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Map ProductVM sang ProductInputVM
+                // Map Product to ProductInputVM
                 var inputModel = new ProductInputVM
                 {
                     Id = product.Id,
                     Name = product.Name,
-                    CategoryId = Guid.Empty, // Cần lấy từ Product entity
+                    CategoryId = product.CategoryId,
                     ExistingImageUrl = product.ImageUrl,
                     Variants = product.Variants.Select(v => new VariantInputVM
                     {
                         SKU = v.SKU,
                         Price = v.Price,
                         Stock = v.Stock,
-                        SelectedAttributeValueIds = new List<Guid>() // Cần load từ DB
+                        SelectedAttributeValueIds = v.SelectedValues.Select(av => av.Id).ToList()
                     }).ToList()
                 };
 
@@ -151,7 +157,7 @@ namespace SuiPOS.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Lỗi khi tải sản phẩm: {ex.Message}";
+                TempData["Error"] = $"Error loading product: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -166,10 +172,24 @@ namespace SuiPOS.Controllers
                 return BadRequest();
             }
 
-            // Validate ít nhất 1 variant
+            // Validate at least 1 variant
             if (model.Variants == null || !model.Variants.Any())
             {
-                ModelState.AddModelError("Variants", "Sản phẩm phải có ít nhất 1 phiên bản (variant)");
+                ModelState.AddModelError("Variants", "Product must have at least 1 variant");
+            }
+
+            // Validate SKU unique
+            if (model.Variants != null && model.Variants.Any())
+            {
+                var duplicateSKUs = model.Variants
+                    .GroupBy(v => v.SKU)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key);
+
+                if (duplicateSKUs.Any())
+                {
+                    ModelState.AddModelError("Variants", $"Duplicate SKU: {string.Join(", ", duplicateSKUs)}");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -184,15 +204,21 @@ namespace SuiPOS.Controllers
 
                 if (result)
                 {
-                    TempData["Success"] = "Cập nhật sản phẩm thành công!";
+                    TempData["Success"] = "Product updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
 
-                ModelState.AddModelError("", "Không thể cập nhật sản phẩm. Vui lòng thử lại.");
+                ModelState.AddModelError("", "Could not update product. Please try again.");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log detailed database error
+                var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+                ModelState.AddModelError("", $"Database error: {innerException}");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Lỗi: {ex.Message}");
+                ModelState.AddModelError("", $"Error: {ex.Message}");
             }
 
             await LoadDropdownData();

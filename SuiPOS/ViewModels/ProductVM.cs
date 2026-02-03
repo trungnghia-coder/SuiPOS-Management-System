@@ -25,38 +25,39 @@ namespace SuiPOS.ViewModels
     {
         public Guid? Id { get; set; }
 
-        [Required(ErrorMessage = "Tên sản phẩm là bắt buộc")]
-        [StringLength(200, MinimumLength = 3, ErrorMessage = "Tên sản phẩm phải từ 3 đến 200 ký tự")]
+        [Required(ErrorMessage = "Product name is required")]
+        [StringLength(200, MinimumLength = 3, ErrorMessage = "Product name must be between 3 and 200 characters")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vui lòng chọn danh mục")]
+        [Required(ErrorMessage = "Please select a category")]
         public Guid CategoryId { get; set; }
 
-        [Display(Name = "Hình ảnh sản phẩm")]
+        [Display(Name = "Product Image")]
+        // ✅ REMOVED: [Required] - Image is optional when editing
         public IFormFile? ImageFile { get; set; }
 
         public string? ExistingImageUrl { get; set; }
 
-        [MinimumCount(1, ErrorMessage = "Sản phẩm phải có ít nhất 1 phiên bản")]
+        [MinimumCount(1, ErrorMessage = "Product must have at least 1 variant")]
         public List<VariantInputVM> Variants { get; set; } = new();
     }
 
     public class VariantInputVM
     {
-        [Required(ErrorMessage = "SKU không được để trống")]
-        [StringLength(50, ErrorMessage = "SKU không được vượt quá 50 ký tự")]
-        [RegularExpression(@"^[A-Za-z0-9-_]+$", ErrorMessage = "SKU chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới")]
+        [Required(ErrorMessage = "SKU is required")]
+        [StringLength(50, ErrorMessage = "SKU cannot exceed 50 characters")]
+        [RegularExpression(@"^[A-Za-z0-9-_]+$", ErrorMessage = "SKU can only contain letters, numbers, hyphens and underscores")]
         public string SKU { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Giá là bắt buộc")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Giá phải lớn hơn 0")]
+        [Required(ErrorMessage = "Price is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
         public decimal Price { get; set; }
 
-        [Required(ErrorMessage = "Số lượng là bắt buộc")]
-        [Range(0, int.MaxValue, ErrorMessage = "Số lượng không được âm")]
+        [Required(ErrorMessage = "Stock is required")]
+        [Range(0, int.MaxValue, ErrorMessage = "Stock cannot be negative")]
         public int Stock { get; set; }
 
-        [MinimumCount(1, ErrorMessage = "Phải chọn ít nhất 1 thuộc tính")]
+        [MinimumCount(1, ErrorMessage = "Must select at least 1 attribute")]
         public List<Guid> SelectedAttributeValueIds { get; set; } = new();
     }
 }
