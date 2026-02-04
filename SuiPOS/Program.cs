@@ -38,13 +38,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // ?? serve static files (images, css, js)
+app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
 
 app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+name: "default",
+pattern: "{controller=POS}/{action=Index}/{id?}");
 
 app.Run();
