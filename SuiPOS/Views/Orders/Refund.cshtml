@@ -1,0 +1,174 @@
+﻿@{
+    ViewData["Title"] = "Hoàn trả thanh toán";
+    var orderId = ViewData["OrderId"]?.ToString() ?? "260204S8M8C9HV";
+}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">Hoàn trả thanh toán</h1>
+            <p class="text-sm text-gray-500 mt-1">VUI LÒNG CUNG CẤP CÁC THÔNG TIN VỀ HOÀN TRẢ ĐƠN HÀNG</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="@Url.Action("Index", "Orders")" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i>
+                Trở về
+            </a>
+            <button id="submitRefundBtn" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                <i class="fas fa-check"></i>
+                Hoàn trả 0 đ
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <!-- Products Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700">Tên sản phẩm</th>
+                            <th class="text-right py-3 px-4 font-medium text-gray-700">Giá</th>
+                            <th class="text-center py-3 px-4 font-medium text-gray-700">Đặt mua</th>
+                            <th class="text-center py-3 px-4 font-medium text-gray-700">Đã hủy đặt</th>
+                            <th class="text-center py-3 px-4 font-medium text-gray-700">Đã trả hàng</th>
+                            <th class="text-center py-3 px-4 font-medium text-gray-700">Hủy đặt</th>
+                            <th class="text-center py-3 px-4 font-medium text-gray-700">Trả hàng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-200">
+                            <td class="py-4 px-4">
+                                <a href="#" class="text-blue-600 hover:underline font-medium">
+                                    Bộ Tole dài tay con Nitimo họa tiết Bông Sắc Nét Độ Bền Cao
+                                </a>
+                                <div class="text-gray-500 mt-1">Xám Loang / 2XL (63Kg-67Kg)</div>
+                            </td>
+                            <td class="text-right py-4 px-4">229,000 đ</td>
+                            <td class="text-center py-4 px-4">1</td>
+                            <td class="text-center py-4 px-4">0</td>
+                            <td class="text-center py-4 px-4">0</td>
+                            <td class="text-center py-4 px-4">
+                                <input type="number" 
+                                       min="0" 
+                                       max="1" 
+                                       value="0" 
+                                       class="w-16 px-2 py-1 border border-gray-300 rounded text-center refund-cancel-input">
+                            </td>
+                            <td class="text-center py-4 px-4">
+                                <input type="number" 
+                                       min="0" 
+                                       max="1" 
+                                       value="0" 
+                                       class="w-16 px-2 py-1 border border-gray-300 rounded text-center refund-return-input">
+                            </td>
+                        </tr>
+                        <tr class="border-b border-gray-200">
+                            <td class="py-4 px-4">
+                                <a href="#" class="text-blue-600 hover:underline font-medium">
+                                    Bộ Tole dài tay con Nitimo họa tiết Bông Sắc Nét Độ Bền Cao
+                                </a>
+                                <div class="text-gray-500 mt-1">Xám Loang / 3XL (68Kg-74Kg)</div>
+                            </td>
+                            <td class="text-right py-4 px-4">229,000 đ</td>
+                            <td class="text-center py-4 px-4">1</td>
+                            <td class="text-center py-4 px-4">0</td>
+                            <td class="text-center py-4 px-4">0</td>
+                            <td class="text-center py-4 px-4">
+                                <input type="number" 
+                                       min="0" 
+                                       max="1" 
+                                       value="0" 
+                                       class="w-16 px-2 py-1 border border-gray-300 rounded text-center refund-cancel-input">
+                            </td>
+                            <td class="text-center py-4 px-4">
+                                <input type="number" 
+                                       min="0" 
+                                       max="1" 
+                                       value="0" 
+                                       class="w-16 px-2 py-1 border border-gray-300 rounded text-center refund-return-input">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="mt-6 space-y-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="cancelAllProducts" class="w-4 h-4">
+                    <span class="text-sm text-gray-700">Hủy đặt <span id="cancelCount">0</span> sản phẩm</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="returnToWarehouse" class="w-4 h-4">
+                    <span class="text-sm text-gray-700">Nhập kho <span id="returnCount">0</span> sản phẩm</span>
+                </label>
+                <div class="flex items-center justify-between text-sm py-2">
+                    <span class="text-gray-700">Tổng tiền có thể hoàn trả:</span>
+                    <span class="font-semibold" id="totalRefundAmount">0 đ</span>
+                </div>
+            </div>
+
+            <!-- Reason Section -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Lý do hoàn trả (tùy chọn):
+                </label>
+                <textarea 
+                    id="refundReason"
+                    rows="4" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nhập lý do hoàn trả..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calculate refund amounts
+    function calculateRefund() {
+        let totalCancel = 0;
+        let totalReturn = 0;
+        let totalAmount = 0;
+
+        document.querySelectorAll('.refund-cancel-input').forEach(input => {
+            totalCancel += parseInt(input.value) || 0;
+        });
+
+        document.querySelectorAll('.refund-return-input').forEach(input => {
+            totalReturn += parseInt(input.value) || 0;
+            const price = 229000; // Should be dynamic based on product
+            totalAmount += (parseInt(input.value) || 0) * price;
+        });
+
+        document.getElementById('cancelCount').textContent = totalCancel;
+        document.getElementById('returnCount').textContent = totalReturn;
+        document.getElementById('totalRefundAmount').textContent = totalAmount.toLocaleString('vi-VN') + ' đ';
+        
+        // Update button text
+        document.getElementById('submitRefundBtn').innerHTML = `
+            <i class="fas fa-check"></i>
+            Hoàn trả ${totalAmount.toLocaleString('vi-VN')} đ
+        `;
+    }
+
+    // Add event listeners
+    document.querySelectorAll('.refund-cancel-input, .refund-return-input').forEach(input => {
+        input.addEventListener('change', calculateRefund);
+    });
+
+    // Submit refund
+    document.getElementById('submitRefundBtn').addEventListener('click', function() {
+        const reason = document.getElementById('refundReason').value;
+        const totalAmount = document.getElementById('totalRefundAmount').textContent;
+        
+        if (confirm(`Xác nhận hoàn trả ${totalAmount}?`)) {
+            // Handle refund submission
+            alert('Đã gửi yêu cầu hoàn trả!');
+            window.location.href = '@Url.Action("Index", "Orders")';
+        }
+    });
+</script>

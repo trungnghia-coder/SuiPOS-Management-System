@@ -1,0 +1,364 @@
+﻿@{
+    ViewData["Title"] = "Tra cứu đơn hàng";
+}
+
+<style>
+    .order-status-badge {
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .status-payed {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+</style>
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Top Header Component -->
+    @await Component.InvokeAsync("PageHeader", new { title = "Tra cứu đơn hàng", showTabs = false })
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-12 gap-4 p-6" style="height: calc(100vh - 72px);">
+        
+        <!-- LEFT: Order List (4 cols) -->
+        <div class="col-span-4 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
+            <!-- Search & Filter -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="relative mb-3">
+                    <input type="text" 
+                           placeholder="Mã đơn hàng, SĐT, Tên, Email" 
+                           class="w-full pl-10 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="flex justify-between">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Từ ngày</label>
+                        <input type="date" 
+                               value="2007-07-09"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex items-center mt-2">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Đến ngày</label>
+                        <input type="date" 
+                               value="2025-07-09"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order List -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- Order Item -->
+                <div class="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <div class="font-medium text-sm text-gray-800">260204S8M8C9HV</div>
+                            <div class="text-xs text-gray-500">Shopee</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-sm">220,000</div>
+                            <span class="order-status-badge status-payed">Đã thanh toán</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600">04/02/2026 08:37:43</div>
+                </div>
+
+                <!-- More order items... -->
+                <div class="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <div class="font-medium text-sm text-gray-800">260202MVEE98A6</div>
+                            <div class="text-xs text-gray-500">L******g</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-sm">630,000</div>
+                            <span class="order-status-badge status-payed">Đã thanh toán</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600">02/02/2026 14:49:05</div>
+                </div>
+
+                <div class="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer">
+                    <div class="flex items-start justify-between mb-2">
+                        <div>
+                            <div class="font-medium text-sm text-gray-800">260202M5GBB996</div>
+                            <div class="text-xs text-gray-500">L******n</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-sm">215,000</div>
+                            <span class="order-status-badge status-payed">Đã thanh toán</span>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600">02/02/2026 07:58:32</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Order Detail (8 cols) -->
+        <div class="col-span-8 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
+            <!-- Order Header -->
+            <div class="p-3 border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-800">Đơn 260204S8M8C9HV</h2>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span class="order-status-badge status-payed">Đang thanh toán</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-print text-gray-600"></i>
+                        </button>
+                        
+                        
+                        <!-- Dropdown Actions -->
+                        <div class="relative">
+                            <select id="orderActionDropdown" class="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white">
+                                <option value="" selected disabled>Thao tác</option>
+                                <option value="reset">Đặt lại</option>
+                                <option value="refund">Hoàn trả</option>
+                                <option value="cancel">Hủy đơn hàng</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="flex overflow-y-auto h-full">
+                <div class="rounded-lg flex-1 overflow-y-auto">
+                    <div class="grid grid-cols-2 gap-4 text-sm p-3 border-b sticky top-0 bg-white z-10">
+                        <div>
+                            <span class="text-gray-600">Người bán:</span>
+                            <span class="font-medium ml-2">--</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Products List với Scrollbar -->
+                    <div class="overflow-y-auto" >
+                        <!-- Item -->
+                        <div class="flex items-center gap-4 p-4 border-b border-gray-200">
+                            <img src="https://cdn.hstatic.net/products/200000810809/upload_f1c96ea215334df49d1383b25e91f422_medium.jpg" 
+                                 alt="Product" 
+                                 class="w-16 h-16 object-cover rounded-lg">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-sm mb-1">Bộ Tole Lửng Tay Nhí Nitimo họa tiết Hoa Hạn Chế Cọ Rút Đô Bền Cao</h4>
+                                <p class="text-xs text-gray-500">Vàng gold / 3XL (68Kg-71Kg)</p>
+                                <p class="text-xs text-gray-400">8935245526102</p>
+                                <div class="text-bottom flex w-auto gap-20 mt-2">
+                                    <div class="text-sm mb-1">220,000</div>
+                                    <div class="text-sm mb-1">x 1</div>
+                                    <div class="text-sm font-semibold">220,000</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 h-auto border-l bg-white">
+                    <div class="max-w-md ml-auto space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tổng tiền hàng</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs bg-gray-200 px-2 py-1 rounded">1 sản phẩm</span>
+                                <span class="font-semibold">220,000</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Giảm giá đơn hàng</span>
+                            <span class="font-semibold">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Ngày</span>
+                            <span class="font-semibold">09/07/2025</span>
+                        </div>
+                        <div class="h-px bg-gray-300 my-2"></div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tiền khách phải thanh toán</span>
+                            <span class="font-semibold">220,000</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tiền khách đã thanh toán</span>
+                            <span class="font-semibold">0</span>
+                        </div>
+                        <div class="flex justify-between text-base font-bold text-blue-600">
+                            <span>Thực nhận</span>
+                            <span>0</span>
+                        </div>
+                    </div>
+
+                    <!-- Note -->
+                    <div class="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                        <div class="flex items-center gap-2 text-gray-600">
+                            <i class="fas fa-sticky-note"></i>
+                            <span class="text-sm">Không có ghi chú cho đơn hàng này</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div id="cancelOrderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800">Hủy đơn hàng</h2>
+            <button onclick="closeCancelModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Warning Message -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-gray-700 mb-2">
+                    Trong trường hợp đơn hàng giả mạo, khách hàng thay đổi nhu cầu hoặc hết hàng, Haravan đề nghị bạn nên hủy đơn hàng.
+                </p>
+                <p class="text-sm text-gray-700">
+                    Hủy bỏ một đơn đặt hàng thao tác không thể phục hồi lại.
+                </p>
+            </div>
+
+            <!-- Cancel Reason -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Lý do hủy đơn hàng</label>
+                <select id="cancelReason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="" selected disabled>Chọn lý do</option>
+                    <option value="out_of_stock">Hết hàng</option>
+                    <option value="customer_request">Khách hàng yêu cầu</option>
+                    <option value="fake_order">Đơn hàng giả</option>
+                    <option value="duplicate">Đơn hàng trùng</option>
+                    <option value="other">Lý do khác</option>
+                </select>
+            </div>
+
+            <!-- Note -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                <textarea id="cancelNote" 
+                          rows="3" 
+                          placeholder="Ghi chú khi hủy đơn hàng..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <!-- Refund Payment Section -->
+            <div class="border-t border-gray-200 pt-4">
+                <h3 class="text-base font-semibold text-gray-800 mb-4">Hoàn trả thanh toán</h3>
+                
+                <!-- Products Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left py-2 px-3 font-medium text-gray-700">Tên sản phẩm</th>
+                                <th class="text-right py-2 px-3 font-medium text-gray-700">Giá</th>
+                                <th class="text-center py-2 px-3 font-medium text-gray-700">Đặt mua</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-200">
+                                <td class="py-3 px-3">
+                                    <a href="#" class="text-blue-600 hover:underline text-sm">
+                                        Bộ Tole dài tay con Nitimo họa tiết Bông Sắc Nét Độ Bền Cao
+                                    </a>
+                                    <div class="text-xs text-gray-500 mt-1">Xám Loang / 2XL (63Kg-67Kg)</div>
+                                </td>
+                                <td class="text-right py-3 px-3">229,000 đ</td>
+                                <td class="text-center py-3 px-3">1</td>
+                            </tr>
+                            <tr class="border-b border-gray-200">
+                                <td class="py-3 px-3">
+                                    <a href="#" class="text-blue-600 hover:underline text-sm">
+                                        Bộ Tole dài tay con Nitimo họa tiết Bông Sắc Nét Độ Bền Cao
+                                    </a>
+                                    <div class="text-xs text-gray-500 mt-1">Xám Loang / 3XL (68Kg-74Kg)</div>
+                                </td>
+                                <td class="text-right py-3 px-3">229,000 đ</td>
+                                <td class="text-center py-3 px-3">1</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50">
+            <button onclick="closeCancelModal()" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">
+                Không
+            </button>
+            <button onclick="confirmCancelOrder()" class="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+                Hủy đơn hàng
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handle dropdown action
+    document.getElementById('orderActionDropdown').addEventListener('change', function(e) {
+        const action = e.target.value;
+        const orderId = '260204S8M8C9HV'; // Get from current selected order
+        
+        if (action === 'refund') {
+            // Navigate to refund page
+            window.location.href = '@Url.Action("Refund", "Orders")?orderId=' + orderId;
+        } else if (action === 'cancel') {
+            // Show cancel modal
+            document.getElementById('cancelOrderModal').classList.remove('hidden');
+        } else if (action === 'reset') {
+            // Handle reset action
+            if (confirm('Bạn có chắc chắn muốn đặt lại đơn hàng này?')) {
+                // Implement reset logic
+                alert('Đã đặt lại đơn hàng!');
+            }
+        }
+        
+        // Reset dropdown
+        e.target.value = '';
+    });
+
+    // Close cancel modal
+    function closeCancelModal() {
+        document.getElementById('cancelOrderModal').classList.add('hidden');
+        document.getElementById('cancelReason').value = '';
+        document.getElementById('cancelNote').value = '';
+    }
+
+    // Confirm cancel order
+    function confirmCancelOrder() {
+        const reason = document.getElementById('cancelReason').value;
+        const note = document.getElementById('cancelNote').value;
+        
+        if (!reason) {
+            alert('Vui lòng chọn lý do hủy đơn hàng!');
+            return;
+        }
+        
+        if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này? Thao tác này không thể hoàn tác!')) {
+            // Implement cancel order logic
+            console.log('Cancel order with reason:', reason, 'note:', note);
+            alert('Đã hủy đơn hàng thành công!');
+            closeCancelModal();
+        }
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('cancelOrderModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCancelModal();
+        }
+    });
+</script>
+

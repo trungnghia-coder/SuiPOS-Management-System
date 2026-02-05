@@ -36,51 +36,8 @@
 
 <!-- POS Screen -->
 <div class="min-h-screen bg-gray-50">
-    <!-- Top Header -->
-    <div class="bg-white border-b border-gray-200 px-6 py-3">
-        <div class="flex items-center justify-between">
-            <!-- Left: Tabs -->
-            <div class="flex items-center gap-2">
-                <!-- Tabs Container -->
-                <div id="tabs-container" class="flex items-center gap-2">
-                    <div class="order-tab active flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer" data-order-id="1">
-                        <span class="font-medium text-gray-700">Đơn 1</span>
-                        <button class="text-gray-400 hover:text-red-500" onclick="event.stopPropagation(); removeTab(this)">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <button id="addOrderBtn" class="w-9 h-9 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right: Actions & User -->
-            <div class="flex items-center gap-3">
-                <button class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center gap-2">
-                    <i class="fas fa-map-marker-alt text-gray-600"></i>
-                    <span class="text-sm font-medium">Địa điểm mặc định</span>
-                </button>
-                
-                <button class="p-2 hover:bg-gray-100 rounded-lg">
-                    <i class="fas fa-print text-gray-600"></i>
-                </button>
-                
-                <button class="p-2 hover:bg-gray-100 rounded-lg">
-                    <i class="fas fa-expand-alt text-gray-600"></i>
-                </button>
-                
-                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer">
-                    TN
-                </div>
-                
-                <button class="p-2 hover:bg-gray-100 rounded-lg">
-                    <i class="fas fa-th text-gray-600"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Top Header Component -->
+    @await Component.InvokeAsync("PageHeader", new { title = "Bán hàng", showTabs = true })
 
     <!-- Main Content: 2 Columns -->
     <div class="grid grid-cols-12 gap-0" style="height: calc(100vh - 72px);">
