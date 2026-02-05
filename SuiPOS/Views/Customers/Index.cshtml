@@ -1,0 +1,202 @@
+﻿@{
+    ViewData["Title"] = "Danh sách khách hàng";
+}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    @await Component.InvokeAsync("PageHeader", new { title = "Danh sách khách hàng", showTabs = false })
+
+    <!-- Main Content -->
+    <div class="p-6">
+        <!-- Search & Filter -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="flex-1 relative">
+                    <input type="text" 
+                           id="searchCustomer"
+                           placeholder="Tìm kiếm theo tên, số điện thoại và email khách hàng" 
+                           class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button onclick="openAddCustomer()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i>
+                    Tạo khách hàng
+                </button>
+            </div>
+            
+            <!-- Customer Count -->
+            <div class="mb-4">
+                <span class="text-sm text-gray-600">Có <strong id="customerCount">206</strong> khách hàng</span>
+            </div>
+
+            <!-- Customers Table -->
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Khách hàng</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Điện thoại</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Đơn gần nhất</th>
+                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">SL đơn hàng</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Nợ phải thu</th>
+                                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Tổng chi tiêu</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="customersTableBody">
+                            <!-- Sample data -->
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Thu Duyen</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0347977017" class="text-sm text-blue-600 hover:underline">0347977017</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Trần Tình</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0339104501" class="text-sm text-blue-600 hover:underline">0339104501</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Tâm</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0335373005" class="text-sm text-blue-600 hover:underline">0335373005</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Liên Lê Thị</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0909393933" class="text-sm text-blue-600 hover:underline">0909393933</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Tuyên</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0979881858" class="text-sm text-blue-600 hover:underline">0979881858</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Trang</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0908815363" class="text-sm text-blue-600 hover:underline">0908815363</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4">
+                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Minh Tâm</a>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="tel:0976264155" class="text-sm text-blue-600 hover:underline">0976264155</a>
+                                </td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
+                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        Hiển thị 1-10 trong 206 khách hàng
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">1</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">2</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">3</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Customer Modal Component -->
+@await Component.InvokeAsync("AddCustomerModal")
+
+@section Scripts {
+    <script>
+        function openAddCustomer() {
+            document.getElementById('addCustomerModal').classList.remove('hidden');
+        }
+
+        // Search functionality
+        document.getElementById('searchCustomer')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#customersTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    </script>
+}

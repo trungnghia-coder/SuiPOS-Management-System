@@ -66,7 +66,7 @@
                         <span class="text-sm text-gray-600">Có <strong>@Model.Count()</strong> sản phẩm</span>
                     </div>
                     <div class="flex gap-2">
-                        <button class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                        <button onclick="showImportModal()" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
                             <i class="fas fa-file-import"></i>
                             Nhập dữ liệu
                         </button>
@@ -222,10 +222,160 @@
     </div>
 </div>
 
-<script>
-    let categoriesData = [];
+<!-- Import Products Modal -->
+<div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-800">Nhập danh sách sản phẩm</h2>
+            <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <!-- Upload Area -->
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center mb-6">
+                <input type="file" id="importFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleFileSelect(event)">
+                <label for="importFile" class="cursor-pointer">
+                    <div class="mb-4">
+                        <i class="fas fa-file-upload text-6xl text-gray-400"></i>
+                    </div>
+                    <button type="button" onclick="document.getElementById('importFile').click()" 
+                            class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 inline-flex items-center gap-2">
+                        <i class="fas fa-file"></i>
+                        Chọn file
+                    </button>
+                    <p class="text-sm text-gray-500 mt-4">File chỉ được phép tới đa 50 MB</p>
+                </label>
+                <div id="selectedFileName" class="mt-4 text-sm text-gray-700 hidden"></div>
+            </div>
 
-    function switchTab(tabName) {
+            <!-- Download Templates -->
+            <div class="flex items-center justify-center gap-6 mb-6">
+                <a href="/templates/products-template.xlsx" download class="text-blue-600 hover:underline flex items-center gap-2">
+                    <i class="fas fa-download"></i>
+                    Tải mẫu Excel (.xlsx)
+                </a>
+                <a href="/templates/products-template.csv" download class="text-blue-600 hover:underline flex items-center gap-2">
+                    <i class="fas fa-download"></i>
+                    Tải mẫu CSV (.csv)
+                </a>
+            </div>
+
+            <!-- Instructions Link -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <a href="#" class="text-blue-600 hover:underline flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i>
+                    Xem hướng dẫn nhập
+                </a>
+            </div>
+        </div>
+        
+        <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+            <button onclick="closeImportModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                Hủy
+            </button>
+            <button id="importButton" onclick="importProducts()" disabled 
+                    class="px-6 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
+                Nhập dữ liệu
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let categoriesData = [];
+let selectedFile = null;
+
+// Import Modal Functions
+function showImportModal() {
+    document.getElementById('importModal').classList.remove('hidden');
+    resetImportModal();
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.add('hidden');
+    resetImportModal();
+}
+
+function resetImportModal() {
+    selectedFile = null;
+    document.getElementById('importFile').value = '';
+    document.getElementById('selectedFileName').classList.add('hidden');
+    document.getElementById('importButton').disabled = true;
+    document.getElementById('importButton').classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+    document.getElementById('importButton').classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Check file size (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+        alert('File quá lớn! Kích thước tối đa là 50MB');
+        return;
+    }
+
+    // Check file type
+    const validTypes = ['.xlsx', '.xls', '.csv'];
+    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validTypes.includes(fileExt)) {
+        alert('Chỉ chấp nhận file Excel (.xlsx, .xls) hoặc CSV (.csv)');
+        return;
+    }
+
+    selectedFile = file;
+    document.getElementById('selectedFileName').textContent = `Đã chọn: ${file.name}`;
+    document.getElementById('selectedFileName').classList.remove('hidden');
+        
+    // Enable import button
+    const importBtn = document.getElementById('importButton');
+    importBtn.disabled = false;
+    importBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+    importBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+}
+
+function importProducts() {
+    if (!selectedFile) {
+        alert('Vui lòng chọn file để nhập');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    // Show loading
+    const importBtn = document.getElementById('importButton');
+    const originalText = importBtn.innerHTML;
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...';
+    importBtn.disabled = true;
+
+    fetch('@Url.Action("ImportProducts", "Products")', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert(result.message || 'Nhập dữ liệu thành công!');
+            closeImportModal();
+            window.location.reload();
+        } else {
+            alert(result.message || 'Có lỗi xảy ra khi nhập dữ liệu');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra khi nhập dữ liệu');
+    })
+    .finally(() => {
+        importBtn.innerHTML = originalText;
+        importBtn.disabled = false;
+    });
+}
+
+function switchTab(tabName) {
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');

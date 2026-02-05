@@ -143,7 +143,7 @@ namespace SuiPOS.Controllers
         public async Task<IActionResult> Create()
         {
             await LoadDropdownData();
-            return View(new ProductInputVM());
+            return View("ProductForm", new ProductInputVM());
         }
 
         // POST: /Product/Create
@@ -179,7 +179,7 @@ namespace SuiPOS.Controllers
             if (!ModelState.IsValid)
             {
                 await LoadDropdownData();
-                return View(model);
+                return View("ProductForm", model);
             }
 
             try

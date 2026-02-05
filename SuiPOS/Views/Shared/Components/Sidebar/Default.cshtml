@@ -42,6 +42,10 @@
                     {
                         <i class="fas fa-box text-lg @(item.IsActive ? "text-blue-600" : "text-gray-500")"></i>
                     }
+                    else if (item.Icon == "customer")
+                    {
+                        <i class="fas fa-user text-lg @(item.IsActive ? "text-blue-600" : "text-gray-500")"></i>
+                    }
                     else if (item.Icon == "settings")
                     {
                         <i class="fas fa-cog text-lg @(item.IsActive ? "text-blue-600" : "text-gray-500")"></i>
