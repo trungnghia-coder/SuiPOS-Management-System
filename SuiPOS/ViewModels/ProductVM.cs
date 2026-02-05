@@ -10,6 +10,7 @@ namespace SuiPOS.ViewModels
         public string CategoryName { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
         public List<VariantDisplayVM> Variants { get; set; } = new();
+        public int VariantCount => Variants?.Count ?? 0;
     }
 
     public class VariantDisplayVM

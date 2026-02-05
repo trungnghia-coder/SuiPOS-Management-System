@@ -1,0 +1,427 @@
+﻿@model IEnumerable<SuiPOS.ViewModels.ProductVM>
+@{
+    ViewData["Title"] = "Quản lý sản phẩm";
+}
+
+<style>
+    .tab-button {
+        padding: 12px 24px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6B7280;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    .tab-button.active {
+        color: #2563EB;
+        border-bottom-color: #2563EB;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+</style>
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <!-- Top Header Component -->
+        @await Component.InvokeAsync("PageHeader", new { title = "Quản lý đơn hàng", showTabs = false })
+        
+        <!-- Tabs -->
+        <div class="flex gap-1 px-6 border-t border-gray-200">
+            <button class="tab-button active" onclick="switchTab('products')">
+                Tất cả sản phẩm
+            </button>
+            <button class="tab-button" onclick="switchTab('categories')">
+                Loại sản phẩm
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="p-6">
+        <!-- Products Tab -->
+        <div id="products-tab" class="tab-content active">
+            <!-- Search & Filter -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="flex-1 relative">
+                        <input type="text" 
+                               id="productSearch"
+                               placeholder="Tìm kiếm sản phẩm..." 
+                               class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between gap-3 mb-4 w-full">
+                    <!-- Products Count -->
+                    <div>
+                        <span class="text-sm text-gray-600">Có <strong>@Model.Count()</strong> sản phẩm</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                            <i class="fas fa-file-import"></i>
+                            Nhập dữ liệu
+                        </button>
+                        <button onclick="window.location.href='@Url.Action("Create", "Products")'" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            Tạo sản phẩm
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Sản phẩm</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Khả dụng</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Tồn</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Đặt</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Chờ nhập</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Loại</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                @if (Model != null && Model.Any())
+                                {
+                                    foreach (var product in Model)
+                                    {
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-4">
+                                                <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                            </td>
+                                            <td class="px-4 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <img src="@(product.ImageUrl ?? "/images/placeholder.png")"
+                                                         alt="@product.Name"
+                                                         class="w-12 h-12 object-cover rounded-lg">
+                                                    <div>
+                                                        <a href="@Url.Action("Details", "Products", new { id = product.Id })"
+                                                           class="text-sm font-medium text-blue-600 hover:underline">
+                                                            @product.Name
+                                                        </a>
+                                                        <div class="text-xs text-gray-500">@product.VariantCount biến thể</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-sm">-</td>
+                                            <td class="px-4 py-4 text-center text-sm">-</td>
+                                            <td class="px-4 py-4 text-center text-sm">-</td>
+                                            <td class="px-4 py-4 text-center text-sm">0</td>
+                                            <td class="px-4 py-4 text-center text-sm text-gray-600">@product.CategoryName</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                            Chưa có sản phẩm nào
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            
+
+        <!-- Categories Tab -->
+        <div id="categories-tab" class="tab-content">
+            <!-- Search -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="flex-1 relative">
+                        <input type="text" 
+                               id="categorySearch"
+                               placeholder="Tìm kiếm loại sản phẩm..." 
+                               class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button onclick="showCreateCategoryModal()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            Tạo loại sản phẩm
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Tên loại</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Số sản phẩm</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Trạng thái</th>
+                                    <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody" class="divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                                        Đang tải dữ liệu...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Category Modal -->
+<div id="createCategoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h2 class="text-lg font-bold text-gray-800">Tạo loại sản phẩm mới</h2>
+            <button onclick="closeCreateCategoryModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên loại sản phẩm <span class="text-red-500">*</span></label>
+                <input type="text" 
+                       id="categoryName"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Nhập tên loại sản phẩm...">
+            </div>
+        </div>
+        
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50">
+            <button onclick="closeCreateCategoryModal()" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100">
+                Hủy
+            </button>
+            <button onclick="createCategory()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Tạo loại sản phẩm
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let categoriesData = [];
+
+    function switchTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active class from all buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab
+        if (tabName === 'products') {
+            document.getElementById('products-tab').classList.add('active');
+            event.target.classList.add('active');
+        } else if (tabName === 'categories') {
+            document.getElementById('categories-tab').classList.add('active');
+            event.target.classList.add('active');
+            loadCategories();
+        }
+    }
+
+    // Load categories from backend
+    async function loadCategories() {
+        try {
+            const response = await fetch('@Url.Action("GetCategories", "Products")');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+
+            categoriesData = data;
+            renderCategories(data);
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            showError('Lỗi khi tải danh sách loại sản phẩm');
+        }
+    }
+
+    // Render categories table
+    function renderCategories(categories) {
+        const tbody = document.getElementById('categoriesTableBody');
+        
+        if (!categories || categories.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        Chưa có loại sản phẩm nào
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = categories.map(cat => `
+            <tr class="hover:bg-gray-50 category-row" data-id="${cat.id}">
+                <td class="px-4 py-4">
+                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
+                </td>
+                <td class="px-4 py-4">
+                    <span class="text-sm font-medium text-gray-800">${cat.name}</span>
+                </td>
+                <td class="px-4 py-4 text-center text-sm">
+                    <span class="px-2 py-1 bg-gray-100 rounded text-gray-700">${cat.productCount}</span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        ${cat.status}
+                    </span>
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <button onclick="deleteCategory('${cat.id}')" 
+                            class="text-[#4b5563] text-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Show create category modal
+    function showCreateCategoryModal() {
+        document.getElementById('createCategoryModal').classList.remove('hidden');
+        document.getElementById('categoryName').value = '';
+        document.getElementById('categoryName').focus();
+    }
+
+    // Close create category modal
+    function closeCreateCategoryModal() {
+        document.getElementById('createCategoryModal').classList.add('hidden');
+    }
+
+    // Create category
+    async function createCategory() {
+        const name = document.getElementById('categoryName').value.trim();
+        
+        if (!name) {
+            alert('Vui lòng nhập tên loại sản phẩm');
+            return;
+        }
+
+        try {
+            const response = await fetch('@Url.Action("CreateCategory", "Products")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                closeCreateCategoryModal();
+                loadCategories();
+                showSuccess(result.message);
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('Error creating category:', error);
+            alert('Lỗi khi tạo loại sản phẩm');
+        }
+    }
+
+    // Delete category
+    async function deleteCategory(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa loại sản phẩm này?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('@Url.Action("DeleteCategory", "Products")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${id}`
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                loadCategories();
+                showSuccess(result.message);
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            alert('Lỗi khi xóa loại sản phẩm');
+        }
+    }
+
+    // Show success message
+    function showSuccess(message) {
+        // You can implement a toast notification here
+        alert(message);
+    }
+
+    // Show error message
+    function showError(message) {
+        alert(message);
+    }
+
+    // Search functionality
+    document.getElementById('productSearch')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#products-tab tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    document.getElementById('categorySearch')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredCategories = categoriesData.filter(cat => 
+            cat.name.toLowerCase().includes(searchTerm)
+        );
+        renderCategories(filteredCategories);
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('createCategoryModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCreateCategoryModal();
+        }
+    });
+
+    // Handle Enter key in category name input
+    document.getElementById('categoryName')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            createCategory();
+        }
+    });
+</script>

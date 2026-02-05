@@ -7,18 +7,18 @@ using SuiPOS.ViewModels;
 
 namespace SuiPOS.Controllers
 {
-    public class ProductController : Controller
+    public class ProductsController : Controller
     {
         private readonly IProductService _productService;
         private readonly SuiPosDbContext _context;
 
-        public ProductController(IProductService productService, SuiPosDbContext context)
+        public ProductsController(IProductService productService, SuiPosDbContext context)
         {
             _productService = productService;
             _context = context;
         }
 
-        // GET: /Product
+        // GET: /Products
         public async Task<IActionResult> Index()
         {
             try
@@ -30,6 +30,91 @@ namespace SuiPOS.Controllers
             {
                 TempData["Error"] = $"Lỗi khi tải danh sách sản phẩm: {ex.Message}";
                 return View(new List<ProductVM>());
+            }
+        }
+
+        // GET: /Products/GetCategories - API endpoint for categories tab
+        [HttpGet]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var categories = await _context.Categories
+                    .Include(c => c.Products)
+                    .Select(c => new
+                    {
+                        id = c.Id,
+                        name = c.Name,
+                        productCount = c.Products.Count,
+                        description = "",
+                        status = "Hoạt động"
+                    })
+                    .ToListAsync();
+
+                return Json(categories);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // POST: /Products/CreateCategory
+        [HttpPost]
+        public async Task<IActionResult> CreateCategory([FromBody] CategoryInputModel model)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(model.Name))
+                {
+                    return Json(new { success = false, message = "Tên loại sản phẩm không được để trống" });
+                }
+
+                var category = new Models.Category
+                {
+                    Id = Guid.NewGuid(),
+                    Name = model.Name
+                };
+
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Tạo loại sản phẩm thành công" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
+        // DELETE: /Products/DeleteCategory/id
+        [HttpPost]
+        public async Task<IActionResult> DeleteCategory(Guid id)
+        {
+            try
+            {
+                var category = await _context.Categories
+                    .Include(c => c.Products)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (category == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy loại sản phẩm" });
+                }
+
+                if (category.Products.Any())
+                {
+                    return Json(new { success = false, message = "Không thể xóa loại sản phẩm đang có sản phẩm" });
+                }
+
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Xóa loại sản phẩm thành công" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
             }
         }
 
@@ -246,23 +331,6 @@ namespace SuiPOS.Controllers
             }
         }
 
-        // GET: /Product/GetCategories (AJAX)
-        [HttpGet]
-        public async Task<IActionResult> GetCategories()
-        {
-            try
-            {
-                var categories = await _context.Categories
-                    .Select(c => new { id = c.Id, name = c.Name })
-                    .ToListAsync();
-                return Json(categories);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
         // GET: /Product/GetAttributes (AJAX)
         [HttpGet]
         public async Task<IActionResult> GetAttributes()
@@ -305,5 +373,12 @@ namespace SuiPOS.Controllers
                 .ToListAsync();
             ViewBag.Attributes = attributes;
         }
+    }
+
+    // Input model for creating category
+    public class CategoryInputModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
     }
 }
