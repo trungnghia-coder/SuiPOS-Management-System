@@ -19,6 +19,12 @@
     <!-- jQuery -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     
+    <!-- JsBarcode for invoice -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
+    <!-- Invoice Preview Functions -->
+    <script src="~/js/invoice-preview.js"></script>
+    
     <style>
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -38,6 +44,9 @@
     <div id="main-content" class="transition-all duration-300" style="margin-left: 70px;">
         @RenderBody()
     </div>
+
+    <!-- Invoice Preview Modal Component -->
+    @await Component.InvokeAsync("InvoicePreviewModal")
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
