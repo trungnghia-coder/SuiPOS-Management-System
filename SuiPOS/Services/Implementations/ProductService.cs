@@ -99,7 +99,7 @@ namespace SuiPOS.Services.Implementations
         {
             // Use explicit transaction to ensure atomicity
             using var transaction = await _context.Database.BeginTransactionAsync();
-            
+
             try
             {
                 var product = await _context.Products
@@ -180,7 +180,7 @@ namespace SuiPOS.Services.Implementations
                 // STEP 4: Re-attach product (without variants)
                 var freshProduct = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == id);
-                
+
                 if (freshProduct == null)
                 {
                     await transaction.RollbackAsync();
@@ -190,7 +190,7 @@ namespace SuiPOS.Services.Implementations
                 // Update basic info
                 freshProduct.Name = product.Name;
                 freshProduct.CategoryId = product.CategoryId;
-                
+
                 // Update ImageUrl ONLY if it was changed (new file uploaded)
                 if (product.ImageUrl != originalImageUrl)
                 {
@@ -218,7 +218,7 @@ namespace SuiPOS.Services.Implementations
 
                     // Add to context first
                     _context.ProductVariants.Add(newVariant);
-                    
+
                     // Attach selected values
                     foreach (var selectedValue in selectedValues)
                     {
@@ -229,7 +229,7 @@ namespace SuiPOS.Services.Implementations
                 // STEP 6: Final save
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                
+
                 return true;
             }
             catch (Exception)
