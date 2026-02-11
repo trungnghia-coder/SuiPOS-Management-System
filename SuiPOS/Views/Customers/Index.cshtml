@@ -2,19 +2,18 @@
     ViewData["Title"] = "Danh sách khách hàng";
 }
 
+@model IEnumerable<SuiPOS.DTOs.Customers.CustomerTableDto>
+
 <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
     @await Component.InvokeAsync("PageHeader", new { title = "Danh sách khách hàng", showTabs = false })
 
-    <!-- Main Content -->
     <div class="p-6">
-        <!-- Search & Filter -->
         <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
             <div class="flex items-center gap-4 mb-4">
                 <div class="flex-1 relative">
-                    <input type="text" 
+                    <input type="text"
                            id="searchCustomer"
-                           placeholder="Tìm kiếm theo tên, số điện thoại và email khách hàng" 
+                           placeholder="Tìm kiếm theo tên, số điện thoại và email khách hàng"
                            class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
@@ -23,156 +22,62 @@
                     Tạo khách hàng
                 </button>
             </div>
-            
-            <!-- Customer Count -->
+
             <div class="mb-4">
-                <span class="text-sm text-gray-600">Có <strong id="customerCount">206</strong> khách hàng</span>
+                <span class="text-sm text-gray-600">Có <strong id="customerCount">@Model.Count()</strong> khách hàng</span>
             </div>
 
-            <!-- Customers Table -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <table class="w-full text-sm text-left">
                         <thead class="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                <th class="px-4 py-3 text-left">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Khách hàng</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">Điện thoại</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">Đơn gần nhất</th>
-                                <th class="px-4 py-3 text-center text-sm font-medium text-gray-700">SL đơn hàng</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Nợ phải thu</th>
-                                <th class="px-4 py-3 text-right text-sm font-medium text-gray-700">Tổng chi tiêu</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Khách hàng</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700">Điện thoại</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700 text-center">Đơn gần nhất</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700 text-center">SL đơn hàng</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700 text-right">Nợ phải thu</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700 text-right">Tổng chi tiêu</th>
+                                <th class="px-4 py-3 font-semibold text-gray-700 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200" id="customersTableBody">
-                            <!-- Sample data -->
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Thu Duyen</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0347977017" class="text-sm text-blue-600 hover:underline">0347977017</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Trần Tình</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0339104501" class="text-sm text-blue-600 hover:underline">0339104501</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Tâm</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0335373005" class="text-sm text-blue-600 hover:underline">0335373005</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Liên Lê Thị</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0909393933" class="text-sm text-blue-600 hover:underline">0909393933</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Tuyên</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0979881858" class="text-sm text-blue-600 hover:underline">0979881858</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Chị Trang</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0908815363" class="text-sm text-blue-600 hover:underline">0908815363</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-4">
-                                    <input type="checkbox" class="w-4 h-4 rounded border-gray-300">
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="#" class="text-sm font-medium text-blue-600 hover:underline">Minh Tâm</a>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <a href="tel:0976264155" class="text-sm text-blue-600 hover:underline">0976264155</a>
-                                </td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">--</td>
-                                <td class="px-4 py-4 text-center text-sm text-gray-600">0</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                                <td class="px-4 py-4 text-right text-sm text-gray-600">0 ₫</td>
-                            </tr>
+                        <tbody id="customersTableBody" class="divide-y divide-gray-100">
+                            @foreach (var item in Model)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="editCustomer('@item.Id', '@item.Customer', '@item.PhoneNumber')">
+                                    <td class="px-4 py-4 text-blue-600 font-medium cursor-pointer">
+                                        @item.Customer
+                                    </td>
+                                    <td class="px-4 py-4 text-gray-600">
+                                        @item.PhoneNumber
+                                    </td>
+                                    <td class="px-4 py-4 text-center text-gray-500">
+                                        @(item.LastestOrder?.ToString("dd/MM/yyyy") ?? "--")
+                                    </td>
+                                    <td class="px-4 py-4 text-center text-gray-600">
+                                        @item.CountOrder
+                                    </td>
+                                    <td class="px-4 py-4 text-right text-red-500">
+                                        @item.Debt.ToString("N0") đ
+                                    </td>
+                                    <td class="px-4 py-4 text-right text-gray-900 font-bold">
+                                        @item.SpentTotal.ToString("N0") đ
+                                    </td>
+                                    <td class="px-4 py-4 text-right" onclick="event.stopPropagation();">
+                                        <button onclick="editCustomer('@item.Id', '@item.Customer', '@item.PhoneNumber')" class="text-gray-400 hover:text-blue-600 mr-3 transition-colors">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteSingleCustomer('@item.Id', '@item.Customer')" class="text-gray-400 hover:text-red-600 transition-colors">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
+                        <button id="btnDeleteSelected" onclick="deleteSelectedCustomers()" class="hidden text-red-600 hover:text-red-800 transition-colors">
+                            <i class="fas fa-trash-alt"></i> Xóa đã chọn
+                        </button>
                     </table>
-                </div>
-
-                <!-- Pagination -->
-                <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
-                        Hiển thị 1-10 trong 206 khách hàng
-                    </div>
-                    <div class="flex gap-1">
-                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm" disabled>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">1</button>
-                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">2</button>
-                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">3</button>
-                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 text-sm">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -198,5 +103,52 @@
                 row.style.display = text.includes(searchTerm) ? '' : 'none';
             });
         });
+
+        //Fill information to Customer POP UP
+        function editCustomer(id, name, phone) {
+            document.querySelector('#addCustomerModal h2').innerText = "Cập nhật thông tin khách hàng";
+            document.getElementById('customerId').value = id;
+            document.getElementById('customerName').value = name;
+            document.getElementById('customerPhone').value = phone;
+            document.getElementById('addCustomerModal').classList.remove('hidden');
+        }
+
+        //Remove information to Customer POP UP
+        function closeAddCustomer() {
+            document.getElementById('addCustomerModal').classList.add('hidden');
+            document.getElementById('customerId').value = "";
+            document.getElementById('customerName').value = "";
+            document.getElementById('customerPhone').value = "";
+            document.querySelector('#addCustomerModal h2').innerText = "Tạo khách hàng mới";
+        }
+
+        //Delete function
+        async function deleteSingleCustomer(id, name) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa khách hàng "${name}" không?`)) return;
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                
+                const formData = new FormData();
+                formData.append('__RequestVerificationToken', token);
+
+                const response = await fetch(`/Customers/Delete?id=${id}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload(); 
+                } else {
+                    alert("Thất bại: " + result.message);
+                }
+            } catch (error) {
+                console.error("Lỗi xóa:", error);
+                alert("Đã xảy ra lỗi kết nối với máy chủ!");
+            }
+        }
     </script>
 }

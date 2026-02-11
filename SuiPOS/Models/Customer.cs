@@ -11,5 +11,9 @@ namespace SuiPOS.Models
         [StringLength(15)]
         public string? Phone { get; set; }
         public int Points { get; set; } = 0;
+        public decimal DebtAmount { get; set; } = 0;
+        public decimal TotalSpent { get; set; } = 0;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public bool IsActive { get; set; } = true;
     }
 }
