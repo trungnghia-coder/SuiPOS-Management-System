@@ -2,6 +2,20 @@
     ViewData["Title"] = "Bán hàng - POS";
 }
 
+<!-- Add Customer Modal Component -->
+@await Component.InvokeAsync("AddCustomerModal")
+
+@section Scripts {
+    <script src="~/js/pos/cart.js"></script>
+    <script src="~/js/pos/payment.js"></script>
+    <script src="~/js/pos/ui-events.js"></script>
+    <script>
+        function openAddCustomer() {
+            document.getElementById('addCustomerModal').classList.remove('hidden');
+        }
+    </script>
+}
+
 <style>
     .order-tab {
         transition: all 0.2s ease;
@@ -136,7 +150,9 @@
                 
                 <button class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
                     <i class="fas fa-user text-gray-600"></i>
-                    <span class="text-sm font-medium">Nhân viên bán: Nguyễn Trung Nghĩa</span>
+                    @{
+                        var sellerName = Context.Request.Cookies["staff_name"] ?? "Nguyễn Trung Nghĩa";
+                    }
                 </button>
             </div>
         </div>
@@ -230,7 +246,7 @@
 
             <!-- Place Order Button -->
             <div class="p-4 bg-white border-t border-gray-200 flex-shrink-0">
-                <button class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2">
+                <button class="submitOrder w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2">
                     <span>Thanh toán</span>
                     <span class="text-sm font-normal bg-blue-500 px-2 py-1 rounded">F9</span>
                 </button>
@@ -263,19 +279,5 @@
         </div>
     </div>
 </div>
-
-<!-- Add Customer Modal Component -->
-@await Component.InvokeAsync("AddCustomerModal")
-
-@section Scripts {
-    <script src="~/js/pos/cart.js"></script>
-    <script src="~/js/pos/payment.js"></script>
-    <script src="~/js/pos/ui-events.js"></script>
-    <script>
-        function openAddCustomer() {
-            document.getElementById('addCustomerModal').classList.remove('hidden');
-        }
-    </script>
-}
 
 

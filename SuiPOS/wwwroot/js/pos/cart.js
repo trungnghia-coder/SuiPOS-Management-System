@@ -1,10 +1,5 @@
-﻿// ============================================
-// CART MANAGEMENT
-// ============================================
+﻿let cart = {}; 
 
-let cart = {}; // Store cart items by order ID
-
-// Sample products data
 const sampleProducts = [
     { id: 1, name: 'Bộ Tole Lạnh Quần Đùi Tay Nhí Họa Tiết Hàn Châu Co Rút Đô Bền Cao Nitimo', price: 185000, image: 'https://cdn.hstatic.net/products/200000810809/upload_f1c96ea215334df49d1383b25e91f422_medium.jpg', color: 'Xanh đen', size: '2XL (65Kg-70Kg)', barcode: '8935245531694' },
     { id: 2, name: 'Bộ Dài Cổ Kiểu Phối Sát Nách Họa Tiết', price: 165000, image: 'https://cdn.hstatic.net/products/200000810809/upload_f1c96ea215334df49d1383b25e91f422_medium.jpg', color: 'Hồng', size: 'L', barcode: '8935245531701' },
@@ -20,7 +15,6 @@ const sampleProducts = [
     { id: 12, name: 'Bộ Dài Cổ Pijama Tay Con Nitimo Cổ Điển', price: 175000, image: 'https://cdn.hstatic.net/products/200000810809/upload_f1c96ea215334df49d1383b25e91f422_medium.jpg', color: 'Hồng cánh sen', size: 'L', barcode: '8935245531800' }
 ];
 
-// Add product to cart
 function addToCart(productId) {
     const product = sampleProducts.find(p => p.id === productId);
     if (!product) return;

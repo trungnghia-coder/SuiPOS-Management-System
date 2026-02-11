@@ -1,8 +1,4 @@
-﻿// ============================================
-// PAYMENT MANAGEMENT
-// ============================================
-
-let paymentMethods = {}; // Store payment methods by order ID
+﻿let paymentMethods = {}; // Store payment methods by order ID
 let paymentMethodCounter = 0;
 
 // Initialize default payment method
@@ -181,4 +177,42 @@ function updateOrderSummary() {
 
     updatePaymentSummary();
 }
+
+async function submitOrder() {
+    const data = {
+        customerId: window.currentCustomerId || null,
+        items: window.cartItems, 
+        payments: window.selectedPayments, 
+        discountAmount: parseFloat(document.getElementById('totalDiscount')?.innerText || 0),
+        amountReceived: parseFloat(document.getElementById('customerGive')?.innerText || 0),
+        shippingFee: parseFloat(document.getElementById('shippingFee')?.innerText || 0),
+        note: document.querySelector('textarea').value
+    };
+
+    try {
+        const response = await fetch('/POS/Checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("Payment successfully!");
+            location.reload();
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Disconnect to server!");
+    }
+}
+
+document.querySelector('.submitOrder').addEventListener('click', function () {
+    submitOrder();
+});
 
