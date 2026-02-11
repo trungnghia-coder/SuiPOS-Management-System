@@ -18,6 +18,9 @@ public class SuiPosDbContext : DbContext
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<AttributeValue> AttributeValues { get; set; }
     public DbSet<ProductVariant> ProductVariants { get; set; }
+    public DbSet<Payment> Payments { get; set; }
+    public DbSet<Promotion> Promotions { get; set; }
+    public DbSet<Refund> Refunds { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -105,15 +108,94 @@ public class SuiPosDbContext : DbContext
             .HasIndex(o => o.OrderCode)
             .IsUnique();
 
+        // ============ CONFIGURATIONS MỚI ============
+
+        // Precision cho decimal trong Order
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Discount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.AmountReceived)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.ChangeAmount)
+            .HasPrecision(18, 2);
+
+        // Precision cho decimal trong Payment
+        modelBuilder.Entity<Payment>()
+            .Property(p => p.Amount)
+            .HasPrecision(18, 2);
+
+        // Precision cho decimal trong Promotion
+        modelBuilder.Entity<Promotion>()
+            .Property(p => p.DiscountValue)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Promotion>()
+            .Property(p => p.MinOrderAmount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Promotion>()
+            .Property(p => p.MaxDiscountAmount)
+            .HasPrecision(18, 2);
+
+        // Precision cho decimal trong Refund
+        modelBuilder.Entity<Refund>()
+            .Property(r => r.RefundAmount)
+            .HasPrecision(18, 2);
+
+        // Precision cho decimal trong Customer
+        modelBuilder.Entity<Customer>()
+            .Property(c => c.DebtAmount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Customer>()
+            .Property(c => c.TotalSpent)
+            .HasPrecision(18, 2);
+
+        // ===== ENUM CONVERSION =====
+        // Lưu Enum dưới dạng string thay vì int
+        modelBuilder.Entity<Promotion>()
+            .Property(p => p.Type)
+            .HasConversion<string>();
+
+        // ===== RELATIONSHIPS MỚI =====
+
+        // Relationship giữa Payment và Order
+        modelBuilder.Entity<Payment>()
+            .HasOne(p => p.Order)
+            .WithMany(o => o.Payments)
+            .HasForeignKey(p => p.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relationship giữa Refund và Order
+        modelBuilder.Entity<Refund>()
+            .HasOne(r => r.Order)
+            .WithMany()
+            .HasForeignKey(r => r.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Relationship giữa Refund và Staff
+        modelBuilder.Entity<Refund>()
+            .HasOne(r => r.Staff)
+            .WithMany()
+            .HasForeignKey(r => r.StaffId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ===== INDEXES MỚI =====
+
+        // Index cho Promotion Code
+        modelBuilder.Entity<Promotion>()
+            .HasIndex(p => p.Code)
+            .IsUnique();
+
         // Index cho Phone trong Customer
         modelBuilder.Entity<Customer>()
             .HasIndex(c => c.Phone);
 
-        // Seed data cho Role
-        modelBuilder.Entity<Role>().HasData(
-            new Role { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), Name = "Admin" },
-            new Role { Id = Guid.Parse("22222222-2222-2222-2222-222222222222"), Name = "Cashier" },
-            new Role { Id = Guid.Parse("33333333-3333-3333-3333-333333333333"), Name = "Manager" }
-        );
+        {
+        }
     }
 }
