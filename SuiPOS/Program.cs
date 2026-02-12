@@ -13,15 +13,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// ? ADD SESSION SUPPORT
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(2);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 builder.Services.AddDbContext<SuiPosDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure Cloudinary settings from appsettings.json
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("CloudinarySettings"));
-
-// Register Repositories
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // Register Order Repository and Service
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -34,6 +40,12 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 //Register Customer Services
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+//Register Category Services
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+//Register Attribute Services
+builder.Services.AddScoped<IAttributeService, AttributeService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

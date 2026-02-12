@@ -6,8 +6,8 @@ namespace SuiPOS.Services.Interfaces
     {
         Task<List<ProductVM>> GetAllAsync();
         Task<ProductVM?> GetByIdAsync(Guid id);
-        Task<bool> CreateAsync(ProductInputVM model);
-        Task<bool> UpdateAsync(Guid id, ProductInputVM model);
-        Task<bool> DeleteAsync(Guid id);
+        Task<(bool Success, string Message)> CreateAsync(ProductInputVM model);
+        Task<(bool Success, string Message)> UpdateAsync(Guid id, ProductInputVM model);
+        Task<(bool Success, string Message)> DeleteAsync(Guid id);
     }
 }
