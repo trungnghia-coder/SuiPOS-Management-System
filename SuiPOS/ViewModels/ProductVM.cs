@@ -1,16 +1,22 @@
 ﻿using SuiPOS.Attributes;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SuiPOS.ViewModels
 {
     public class ProductVM
     {
         public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
-        public List<VariantDisplayVM> Variants { get; set; } = new();
-        public int VariantCount => Variants?.Count ?? 0;
+        public int Available { get; set; }
+        public int Inventory { get; set; }
+        public bool isActive { get; set; }
+        public int Orders { get; set; }
+        [NotMapped]
+        public List<VariantDisplayVM>? Variants { get; set; } = new();
     }
 
     public class VariantDisplayVM
@@ -34,7 +40,6 @@ namespace SuiPOS.ViewModels
         public Guid CategoryId { get; set; }
 
         [Display(Name = "Product Image")]
-        // ✅ REMOVED: [Required] - Image is optional when editing
         public IFormFile? ImageFile { get; set; }
 
         public string? ExistingImageUrl { get; set; }
@@ -58,7 +63,8 @@ namespace SuiPOS.ViewModels
         [Range(0, int.MaxValue, ErrorMessage = "Stock cannot be negative")]
         public int Stock { get; set; }
 
-        [MinimumCount(1, ErrorMessage = "Must select at least 1 attribute")]
+        public string? Combination { get; set; }
+
         public List<Guid> SelectedAttributeValueIds { get; set; } = new();
     }
 }

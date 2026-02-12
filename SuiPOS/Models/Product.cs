@@ -19,5 +19,7 @@ namespace SuiPOS.Models
         public string? ImageUrl { get; set; }
 
         public List<ProductVariant> Variants { get; set; } = new();
+
+        public bool isActive { get; set; } = true;
     }
 }

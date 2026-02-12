@@ -1,11 +1,8 @@
-using System.Collections;
+﻿using System.Collections;
 using System.ComponentModel.DataAnnotations;
 
 namespace SuiPOS.Attributes
 {
-    /// <summary>
-    /// Validation attribute ?? ki?m tra s? l??ng t?i thi?u trong collection
-    /// </summary>
     public class MinimumCountAttribute : ValidationAttribute
     {
         private readonly int _minCount;
@@ -13,22 +10,16 @@ namespace SuiPOS.Attributes
         public MinimumCountAttribute(int minCount)
         {
             _minCount = minCount;
-            ErrorMessage = $"Ph?i c� �t nh?t {_minCount} ph?n t?";
         }
 
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value == null)
-            {
-                return new ValidationResult(ErrorMessage ?? $"Ph?i c� �t nh?t {_minCount} ph?n t?");
-            }
+            // Ép kiểu sang ICollection để đếm phần tử
+            var collection = value as ICollection;
 
-            if (value is ICollection collection)
+            if (collection == null || collection.Count < _minCount)
             {
-                if (collection.Count < _minCount)
-                {
-                    return new ValidationResult(ErrorMessage ?? $"Ph?i c� �t nh?t {_minCount} ph?n t?");
-                }
+                return new ValidationResult(ErrorMessage ?? $"Phải có ít nhất {_minCount} phần tử.");
             }
 
             return ValidationResult.Success;
