@@ -64,11 +64,11 @@
                                         @item.SpentTotal.ToString("N0") đ
                                     </td>
                                     <td class="px-4 py-4 text-right" onclick="event.stopPropagation();">
-                                        <button onclick="editCustomer('@item.Id', '@item.Customer', '@item.PhoneNumber')" class="text-gray-400 hover:text-blue-600 mr-3 transition-colors">
-                                            <i class="fas fa-edit"></i>
+                                        <button onclick="editCustomer('@item.Id', '@item.Customer', '@item.PhoneNumber')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                            <i class="fas fa-edit text-lg"></i>
                                         </button>
-                                        <button onclick="deleteSingleCustomer('@item.Id', '@item.Customer')" class="text-gray-400 hover:text-red-600 transition-colors">
-                                            <i class="fas fa-trash-alt"></i>
+                                        <button onclick="deleteSingleCustomer('@item.Id', '@item.Customer')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i class="fas fa-trash-alt text-lg"></i>
                                         </button>
                                     </td>
                                 </tr>

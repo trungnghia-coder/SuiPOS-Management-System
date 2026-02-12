@@ -72,5 +72,12 @@ namespace SuiPOS.Services.Implementations
         {
             return await _context.Staffs.AnyAsync(s => s.Username == username);
         }
+
+        public async Task<Staff?> GetStaffByUsernameAsync(string username)
+        {
+            return await _context.Staffs
+                .Include(s => s.Role)
+                .FirstOrDefaultAsync(s => s.Username == username);
+        }
     }
 }

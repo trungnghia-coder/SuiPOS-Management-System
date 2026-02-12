@@ -101,5 +101,42 @@ namespace SuiPOS.Controllers
             TempData["SuccessMessage"] = "Đăng xuất thành công!";
             return RedirectToAction("Login", "Auth");
         }
+
+        [HttpPost]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = CookieHelper.GetCookie(HttpContext, "suipos_rf");
+
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(new { success = false, message = "Refresh token không tồn tại" });
+            }
+
+            var username = CookieHelper.GetCookie(HttpContext, "staff_name");
+
+            if (string.IsNullOrEmpty(username))
+            {
+                return Unauthorized(new { success = false, message = "Session đã hết hạn" });
+            }
+
+            try
+            {
+                var staff = await _authService.GetStaffByUsernameAsync(username);
+
+                if (staff == null)
+                {
+                    return Unauthorized(new { success = false, message = "User không tồn tại" });
+                }
+
+                var newAccessToken = _jwtHelper.GenerateAccessToken(staff.Username, staff.FullName, staff.Role.Id);
+                CookieHelper.SetCookie(HttpContext, "suipos_ac", newAccessToken, 30);
+
+                return Ok(new { success = true, message = "Token refreshed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
+        }
     }
 }
