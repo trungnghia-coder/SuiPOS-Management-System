@@ -1,7 +1,7 @@
 ﻿@{
     ViewData["Title"] = "Bán hàng - POS";
 }
-
+@model IEnumerable<SuiPOS.ViewModels.ProductVM>
 <!-- Add Customer Modal Component -->
 @await Component.InvokeAsync("AddCustomerModal")
 
@@ -9,6 +9,7 @@
     <script src="~/js/pos/cart.js"></script>
     <script src="~/js/pos/payment.js"></script>
     <script src="~/js/pos/ui-events.js"></script>
+    <script src="~/js/product-management.js"></script>
     <script>
         function openAddCustomer() {
             document.getElementById('addCustomerModal').classList.remove('hidden');
@@ -134,7 +135,32 @@
                         <!-- Products Grid với scroll -->
                         <div class="flex-1 overflow-y-auto p-4 bg-[#f3f4f6]">
                             <div class="grid grid-cols-4 gap-4" id="productsGrid">
-                                <!-- Products will be added here -->
+                                @if (Model != null && Model.Any())
+                                {
+                                    foreach (var product in Model)
+                                    {
+                                        <div class="bg-white rounded-lg overflow-hidden cursor-pointer border"
+                                             onclick="event.stopPropagation(); showVariantModal('@product.Id')">
+                                            <div class="p-2 flex">
+                                                <img src="@(product.ImageUrl ?? "https://placehold.co/100x100/webp?text=100x100")" alt="@product.ProductName" class="w-10 h-10 border-[1px] rounded-lg object-cover cursor-pointer">
+                                                <div class="px-2">
+                                                    <h3 class="text-sm font-small text-gray-800 line-clamp-2 mb-1 min-h-[40px]">@product.ProductName</h3>
+                                                    <button class="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                            Chưa có sản phẩm nào
+                                        </td>
+                                    </tr>
+                                }
                             </div>
                         </div>
                     </div>

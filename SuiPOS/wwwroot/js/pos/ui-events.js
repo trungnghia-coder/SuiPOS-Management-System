@@ -8,7 +8,6 @@ let usedOrderIds = new Set([1]);
 
 // ========== START: Initialize ==========
 document.addEventListener('DOMContentLoaded', function() {
-    loadProductsToModal();
     
     document.querySelectorAll('.order-tab').forEach(tab => {
         tab.addEventListener('click', function(e) {
@@ -41,59 +40,97 @@ function openProductList() {
     }, 10);
 }
 
-function loadProductsToModal() {
-    const grid = document.getElementById('productsGrid');
-    grid.innerHTML = sampleProducts.map(product => `
-        <div class="bg-white rounded-lg overflow-hidden cursor-pointer border" onclick="event.stopPropagation(); showVariantModal(${product.id})">
-            <div class="p-2 flex">
-                <img src="${product.image}" alt="${product.name}" class="w-10 h-10 border-[1px] rounded-lg object-cover cursor-pointer">
-                <div class="px-2">
-                    <h3 class="text-sm font-small text-gray-800 line-clamp-2 mb-1 min-h-[40px]">${product.name}</h3>
-                    <button class="px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">
-                        <i class="fas fa-ellipsis-h"></i>
-                    </button>
+async function showVariantModal(productId) {
+    try {
+        const variantsList = document.getElementById('variantsList');
+        variantsList.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                <p class="text-sm text-gray-500 mt-2">Đang tải biến thể...</p>
+            </div>`;
+        document.getElementById('variantModal').classList.remove('hidden');
+
+        const response = await fetch(`/Products/GetById?id=${productId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const product = await response.json();
+
+        if (!product || !product.id) {
+            alert("Không thể load thông tin sản phẩm!");
+            closeVariantModal();
+            return;
+        }
+
+        const variants = product.variants || product.Variants || [];
+
+        if (variants.length === 0) {
+            alert("Sản phẩm này không có biến thể!");
+            closeVariantModal();
+            return;
+        }
+
+        renderVariantsList(variants, product.productName || product.ProductName);
+
+    } catch (error) {
+        console.error('❌ Error loading variants:', error);
+        alert(`Lỗi khi tải biến thể: ${error.message}`);
+        closeVariantModal();
+    }
+}
+
+function renderVariantsList(variants, productName) {
+    const variantsList = document.getElementById('variantsList');
+
+    variantsList.innerHTML = variants.map(v => {
+        const variantId = v.id || v.Id; // ✅ GUID của variant
+        const sku = v.sku || v.SKU || '';
+        const name = v.combination || v.Combination || 'Mặc định';
+        const price = v.price || v.Price || 0;
+        const stock = v.stock || v.Stock || 0;
+
+        return `
+            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition cursor-pointer ${stock <= 0 ? 'opacity-60 bg-gray-50' : ''}" 
+                 onclick="${stock > 0 ? `selectVariant('${variantId}', '${sku}', '${name}', ${price}, '${productName || 'Sản phẩm'}')` : "alert('Sản phẩm đã hết hàng!')"}">
+                
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <p class="text-sm font-bold text-gray-800">${name}</p>
+                        <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-mono">${sku}</span>
+                    </div>
+                    <p class="text-xs text-blue-600 font-semibold mt-1">${price.toLocaleString('vi-VN')} ₫</p>
+                </div>
+
+                <div class="text-right">
+                    <p class="text-xs mb-1 ${stock > 0 ? 'text-gray-500' : 'text-red-500 font-bold'}">
+                        Tồn: <strong>${stock}</strong>
+                    </p>
+                    ${stock > 0
+                        ? `<span class="px-2 py-1 text-[10px] bg-green-100 text-green-700 rounded-full font-medium">Sẵn sàng</span>`
+                        : `<span class="px-2 py-1 text-[10px] bg-red-100 text-red-700 rounded-full font-medium">Hết hàng</span>`
+                    }
                 </div>
             </div>
-            
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
-function showVariantModal(productId) {
-    const product = sampleProducts.find(p => p.id === productId);
-    if (!product) return;
-    
-    const variants = [
-        { id: 1, name: `${product.color} / 2XL (65Kg-70Kg)`, stock: 1, barcode: '8935245531694' },
-        { id: 2, name: `${product.color} / L (53Kg-57Kg)`, stock: 1, barcode: '8935245531701' },
-        { id: 3, name: `${product.color} / XL (58Kg-64Kg)`, stock: 0, barcode: '8935245531718' },
-        { id: 4, name: `${product.color} / M (43Kg-52Kg)`, stock: 1, barcode: '8935245531725' },
-        { id: 5, name: `Kem sữa / 2XL (65Kg-70Kg)`, stock: 0, barcode: '8935245531732' },
-        { id: 6, name: `Kem sữa / L (53Kg-57Kg)`, stock: 1, barcode: '8935245531739' }
-    ];
-    
-    const variantsList = document.getElementById('variantsList');
-    variantsList.innerHTML = variants.map(variant => `
-        <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer ${variant.stock === 0 ? 'opacity-50' : ''}" 
-             onclick="${variant.stock > 0 ? `selectVariant(${product.id}, ${variant.id})` : ''}">
-            <div class="flex-1">
-                <p class="text-sm font-medium">${variant.name}</p>
-                <p class="text-xs text-gray-500">${variant.barcode}</p>
-            </div>
-            <div class="text-right">
-                ${variant.stock > 0 
-                    ? `<span class="inline-block px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Còn ${variant.stock}</span>` 
-                    : `<span class="inline-block px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Hết hàng</span>`
-                }
-            </div>
-        </div>
-    `).join('');
-    
-    document.getElementById('variantModal').classList.remove('hidden');
-}
 
-function selectVariant(productId, variantId) {
-    addToCart(productId);
+function selectVariant(variantId, sku, variantName, price, productName) {
+    if (typeof addToCart === 'function') {
+        addToCart({
+            variantId: variantId, 
+            sku: sku,              
+            name: `${productName} - ${variantName}`,
+            productName: productName,
+            variantName: variantName,
+            price: price,         
+            quantity: 1
+        });
+    }
+    
     closeVariantModal();
 }
 
@@ -184,7 +221,8 @@ function removeTab(button) {
         
         usedOrderIds.delete(orderId);
         
-        delete cart[orderId];
+        // ✅ FIX: Dùng Cart.data thay vì cart
+        delete Cart.data[orderId];
         delete paymentMethods[orderId];
         
         if (wasActive) {

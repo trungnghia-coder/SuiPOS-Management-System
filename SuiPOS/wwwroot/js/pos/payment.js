@@ -136,7 +136,9 @@ function updatePaymentSummary() {
     const activeTab = document.querySelector('.order-tab.active');
     const orderId = activeTab.dataset.orderId;
     const methods = paymentMethods[orderId] || [];
-    const cartItems = cart[orderId] || [];
+    
+    // ✅ FIX: Dùng Cart.getItems() thay vì cart[orderId]
+    const cartItems = Cart.getItems();
 
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalPaid = methods.reduce((sum, method) => sum + method.amount, 0);
@@ -158,9 +160,8 @@ function updatePaymentSummary() {
 
 // Update order summary
 function updateOrderSummary() {
-    const activeTab = document.querySelector('.order-tab.active');
-    const orderId = activeTab.dataset.orderId;
-    const cartItems = cart[orderId] || [];
+    // ✅ FIX: Dùng Cart.getItems() thay vì cart[orderId]
+    const cartItems = Cart.getItems();
 
     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -170,6 +171,9 @@ function updateOrderSummary() {
     document.getElementById('customerPay').textContent = totalAmount.toLocaleString();
 
     // Auto-update first payment method with total amount
+    const activeTab = document.querySelector('.order-tab.active');
+    const orderId = activeTab.dataset.orderId;
+    
     if (paymentMethods[orderId] && paymentMethods[orderId].length > 0 && totalAmount > 0) {
         paymentMethods[orderId][0].amount = totalAmount;
         renderPaymentMethods();
