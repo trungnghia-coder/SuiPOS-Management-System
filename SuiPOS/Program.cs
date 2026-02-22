@@ -2,8 +2,6 @@ using ECommerceMVC.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using SuiPOS.Data;
-using SuiPOS.Repositories.Implementations;
-using SuiPOS.Repositories.Interfaces;
 using SuiPOS.Services.Implementations;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.Settings;
@@ -29,11 +27,9 @@ builder.Services.AddDbContext<SuiPosDbContext>(options =>
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("CloudinarySettings"));
 
-// Register Order Repository and Service
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-
 // Register Services
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -46,6 +42,9 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 //Register Attribute Services
 builder.Services.AddScoped<IAttributeService, AttributeService>();
+
+//Register SystemSetting Services
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

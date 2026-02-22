@@ -30,6 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Data\SeedData\" />
+    <Folder Include="Repositories\Implementations\" />
     <Folder Include="Views\Home\" />
   </ItemGroup>
 

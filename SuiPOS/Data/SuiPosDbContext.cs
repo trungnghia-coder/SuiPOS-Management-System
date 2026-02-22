@@ -21,6 +21,7 @@ public class SuiPosDbContext : DbContext
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Promotion> Promotions { get; set; }
     public DbSet<Refund> Refunds { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -195,7 +196,18 @@ public class SuiPosDbContext : DbContext
         modelBuilder.Entity<Customer>()
             .HasIndex(c => c.Phone);
 
-        {
-        }
+        // ===== SYSTEM SETTINGS =====
+
+        // Index cho Key trong SystemSettings
+        modelBuilder.Entity<SystemSetting>()
+            .HasIndex(s => s.Key)
+            .IsUnique();
+
+        // Relationship giữa SystemSetting và Staff
+        modelBuilder.Entity<SystemSetting>()
+            .HasOne(s => s.UpdatedByStaff)
+            .WithMany()
+            .HasForeignKey(s => s.UpdatedBy)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
