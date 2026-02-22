@@ -3,10 +3,10 @@
     public class OrderViewModel
     {
         public Guid? CustomerId { get; set; }
+        public Guid? StaffId { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal AmountReceived { get; set; }
         public decimal? DiscountAmount { get; set; }
-        public decimal ShippingFee { get; set; }
         public string? Note { get; set; }
         public List<CartItemViewModel> Items { get; set; } = new();
         public List<PaymentViewModel> Payments { get; set; } = new();

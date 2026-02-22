@@ -53,8 +53,9 @@ namespace SuiPOS.Controllers
                 CookieHelper.SetCookie(HttpContext, "suipos_rf", refreshToken, 10080);
             }
 
+            CookieHelper.SetCookie(HttpContext, "staff_id", staff.Id.ToString(), 30);
+            CookieHelper.SetCookie(HttpContext, "staff_username", staff.Username, 30);
             CookieHelper.SetCookie(HttpContext, "staff_name", staff.FullName, 30);
-
             CookieHelper.SetCookie(HttpContext, "staff_role", staff.Role?.Name ?? "Staff", 30);
 
             TempData["SuccessMessage"] = $"Chào mừng {staff.FullName}!";
@@ -112,7 +113,7 @@ namespace SuiPOS.Controllers
                 return Unauthorized(new { success = false, message = "Refresh token không tồn tại" });
             }
 
-            var username = CookieHelper.GetCookie(HttpContext, "staff_name");
+            var username = CookieHelper.GetCookie(HttpContext, "staff_username");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -137,6 +138,27 @@ namespace SuiPOS.Controllers
             {
                 return StatusCode(500, new { success = false, message = $"Lỗi: {ex.Message}" });
             }
+        }
+
+        // ✅ Check if access token is still valid
+        [HttpGet]
+        public IActionResult CheckToken()
+        {
+            var token = CookieHelper.GetCookie(HttpContext, "suipos_ac");
+            
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new { success = false, message = "No token" });
+            }
+
+            var principal = _jwtHelper.ValidateToken(token);
+            
+            if (principal == null)
+            {
+                return Unauthorized(new { success = false, message = "Invalid token" });
+            }
+
+            return Ok(new { success = true, message = "Token valid" });
         }
     }
 }
