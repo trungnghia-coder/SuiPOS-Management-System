@@ -1,42 +1,58 @@
 ﻿// ============================================
-// UI EVENTS & TAB MANAGEMENT
+// UI EVENTS - SINGLE ORDER
 // ============================================
 
-const MAX_TABS = 8;
-let orderCount = 1;
-let usedOrderIds = new Set([1]);
-
-// ========== START: Initialize ==========
 document.addEventListener('DOMContentLoaded', function() {
-    
-    document.querySelectorAll('.order-tab').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            if (!e.target.closest('button')) {
-                switchTab(this);
-            }
-        });
-    });
-
-    document.getElementById('addPaymentMethodBtn').addEventListener('click', addPaymentMethod);
-    document.getElementById('openProductListBtn').addEventListener('click', openProductList);
-    document.getElementById('addCustomerBtn').addEventListener('click', () => {
+    document.getElementById('addPaymentMethodBtn')?.addEventListener('click', addPaymentMethod);
+    document.getElementById('openProductListBtn')?.addEventListener('click', openProductList);
+    document.getElementById('addCustomerBtn')?.addEventListener('click', () => {
         document.getElementById('addCustomerModal').classList.remove('hidden');
     });
-    document.getElementById('clearAllBtn').addEventListener('click', clearAllCart);
-    document.getElementById('addOrderBtn').addEventListener('click', addNewTab);
+    document.getElementById('clearAllBtn')?.addEventListener('click', clearAllCart);
 
-    initializeDefaultPaymentMethod();
-    updateAddButtonVisibility();
+    // Initialize product search
+    const productSearchInput = document.getElementById('productSearchInput');
+    if (productSearchInput) {
+        productSearchInput.addEventListener('input', filterProducts);
+    }
+
+    // Load reorder cart if exists
+    if (typeof Cart !== 'undefined' && typeof Cart.loadReorderCart === 'function') {
+        Cart.loadReorderCart();
+    }
+
+    if (typeof initializeDefaultPaymentMethod === 'function') {
+        initializeDefaultPaymentMethod();
+    }
+    if (typeof updateCartDisplay === 'function') {
+        updateCartDisplay();
+    }
 });
-// ========== END: Initialize ==========
+
+// ========== START: Product Search ==========
+function filterProducts() {
+    const searchTerm = document.getElementById('productSearchInput').value.toLowerCase();
+    const productCards = document.querySelectorAll('#productsGrid > div');
+    
+    productCards.forEach(card => {
+        const productName = card.querySelector('h3').textContent.toLowerCase();
+        if (productName.includes(searchTerm)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+// ========== END: Product Search ==========
 
 // ========== START: Product Bottom Sheet ==========
 function openProductList() {
     const sheet = document.getElementById('productListSheet');
-    sheet.classList.remove('hidden');
+    if (!sheet) return;
     
+    sheet.classList.remove('hidden');
     setTimeout(() => {
-        sheet.querySelector('.bottom-sheet').classList.add('active');
+        sheet.querySelector('.bottom-sheet')?.classList.add('active');
     }, 10);
 }
 
@@ -72,20 +88,22 @@ async function showVariantModal(productId) {
             return;
         }
 
-        renderVariantsList(variants, product.productName || product.ProductName);
+        const productName = product.productName || product.ProductName;
+        const imageUrl = product.imageUrl || product.ImageUrl;
+        renderVariantsList(variants, productName, imageUrl);
 
     } catch (error) {
-        console.error('❌ Error loading variants:', error);
+        console.error('Error loading variants:', error);
         alert(`Lỗi khi tải biến thể: ${error.message}`);
         closeVariantModal();
     }
 }
 
-function renderVariantsList(variants, productName) {
+function renderVariantsList(variants, productName, imageUrl) {
     const variantsList = document.getElementById('variantsList');
 
     variantsList.innerHTML = variants.map(v => {
-        const variantId = v.id || v.Id; // ✅ GUID của variant
+        const variantId = v.id || v.Id;
         const sku = v.sku || v.SKU || '';
         const name = v.combination || v.Combination || 'Mặc định';
         const price = v.price || v.Price || 0;
@@ -93,7 +111,14 @@ function renderVariantsList(variants, productName) {
 
         return `
             <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition cursor-pointer ${stock <= 0 ? 'opacity-60 bg-gray-50' : ''}" 
-                 onclick="${stock > 0 ? `selectVariant('${variantId}', '${sku}', '${name}', ${price}, '${productName || 'Sản phẩm'}')` : "alert('Sản phẩm đã hết hàng!')"}">
+                 data-variant-id="${variantId}"
+                 data-sku="${sku}"
+                 data-name="${name}"
+                 data-price="${price}"
+                 data-product-name="${productName || 'Sản phẩm'}"
+                 data-image-url="${imageUrl || ''}"
+                 data-stock="${stock}"
+                 onclick="handleVariantClick(this)">
                 
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
@@ -117,8 +142,26 @@ function renderVariantsList(variants, productName) {
     }).join('');
 }
 
+function handleVariantClick(element) {
+    const stock = parseInt(element.dataset.stock);
+    
+    if (stock <= 0) {
+        alert('Sản phẩm đã hết hàng!');
+        return;
+    }
+    
+    selectVariant(
+        element.dataset.variantId,
+        element.dataset.sku,
+        element.dataset.name,
+        parseFloat(element.dataset.price),
+        element.dataset.productName,
+        element.dataset.imageUrl
+    );
+}
 
-function selectVariant(variantId, sku, variantName, price, productName) {
+
+function selectVariant(variantId, sku, variantName, price, productName, imageUrl) {
     if (typeof addToCart === 'function') {
         addToCart({
             variantId: variantId, 
@@ -127,7 +170,8 @@ function selectVariant(variantId, sku, variantName, price, productName) {
             productName: productName,
             variantName: variantName,
             price: price,         
-            quantity: 1
+            quantity: 1,
+            imageUrl: imageUrl
         });
     }
     
@@ -152,106 +196,6 @@ function closeAddCustomer() {
     document.getElementById('addCustomerModal').classList.add('hidden');
 }
 // ========== END: Product Bottom Sheet ==========
-
-// ========== START: Tab Management ==========
-function switchTab(tabElement) {
-    document.querySelectorAll('.order-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    tabElement.classList.add('active');
-
-    initializeDefaultPaymentMethod();
-    updateCartDisplay();
-    renderPaymentMethods();
-}
-
-function getNextAvailableOrderId() {
-    let id = 1;
-    while (usedOrderIds.has(id)) {
-        id++;
-    }
-    return id;
-}
-
-function addNewTab() {
-    const totalTabs = document.querySelectorAll('.order-tab').length;
-    if (totalTabs >= MAX_TABS) {
-        alert(`Chỉ được mở tối đa ${MAX_TABS} đơn hàng cùng lúc!`);
-        return;
-    }
-
-    const tabsContainer = document.getElementById('tabs-container');
-    const addButton = document.getElementById('addOrderBtn');
-    
-    document.querySelectorAll('.order-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    const newOrderId = getNextAvailableOrderId();
-    usedOrderIds.add(newOrderId);
-    
-    const newTab = document.createElement('div');
-    newTab.className = 'order-tab active flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer';
-    newTab.dataset.orderId = newOrderId;
-    newTab.innerHTML = `
-        <span class="font-medium text-gray-700">Đơn ${newOrderId}</span>
-        <button class="text-gray-400 hover:text-red-500" onclick="event.stopPropagation(); removeTab(this)">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    newTab.addEventListener('click', function(e) {
-        if (!e.target.closest('button')) {
-            switchTab(this);
-        }
-    });
-    
-    tabsContainer.insertBefore(newTab, addButton);
-    updateCartDisplay();
-    updateAddButtonVisibility();
-}
-
-function removeTab(button) {
-    const tab = button.closest('.order-tab');
-    const orderId = parseInt(tab.dataset.orderId);
-    
-    if (document.querySelectorAll('.order-tab').length > 1) {
-        const wasActive = tab.classList.contains('active');
-        
-        usedOrderIds.delete(orderId);
-        
-        // ✅ FIX: Dùng Cart.data thay vì cart
-        delete Cart.data[orderId];
-        delete paymentMethods[orderId];
-        
-        if (wasActive) {
-            const nextTab = tab.nextElementSibling?.classList.contains('order-tab') 
-                ? tab.nextElementSibling 
-                : tab.previousElementSibling;
-            if (nextTab && nextTab.classList.contains('order-tab')) {
-                switchTab(nextTab);
-            }
-        }
-        
-        tab.remove();
-        updateAddButtonVisibility();
-    } else {
-        alert('Phải có ít nhất 1 đơn hàng!');
-    }
-}
-
-function updateAddButtonVisibility() {
-    const addButton = document.getElementById('addOrderBtn');
-    const totalTabs = document.querySelectorAll('.order-tab').length;
-    
-    if (totalTabs >= MAX_TABS) {
-        addButton.classList.add('hidden');
-    } else {
-        addButton.classList.remove('hidden');
-    }
-}
-// ========== END: Tab Management ==========
 
 // ========== START: Keyboard Shortcuts ==========
 document.addEventListener('keydown', function(e) {

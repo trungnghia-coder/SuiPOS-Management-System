@@ -1,76 +1,96 @@
 ﻿// ============================================
-// CART STATE MANAGEMENT
+// CART STATE MANAGEMENT WITH SESSIONSTORAGE
 // ============================================
 const Cart = {
-    data: {}, // { orderId: [items] }
+    STORAGE_KEY: 'pos_cart_data',
     
-    getActiveOrderId() {
-        const activeTab = document.querySelector('.order-tab.active');
-        return activeTab?.dataset.orderId || '1';
+    get data() {
+        const stored = sessionStorage.getItem(this.STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
     },
     
+    set data(value) {
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(value));
+    },
+
     getItems() {
-        const orderId = this.getActiveOrderId();
-        return this.data[orderId] || [];
+        return this.data;
     },
-    
+
     findItem(variantId) {
-        return this.getItems().find(item => item.variantId === variantId);
+        return this.data.find(item => item.variantId === variantId);
     },
-    
+
     addItem(product) {
-        const orderId = this.getActiveOrderId();
-        if (!this.data[orderId]) this.data[orderId] = [];
-        
-        const existing = this.findItem(product.variantId);
+        const allData = this.data;
+        const existing = allData.find(item => item.variantId === product.variantId);
+
         if (existing) {
-            existing.quantity++;
+            existing.quantity += product.quantity || 1;
         } else {
-            this.data[orderId].push({
-                variantId: product.variantId,     
-                sku: product.sku,                
-                name: product.name,              
-                productName: product.productName, 
-                variantName: product.variantName, 
-                price: product.price,             
-                quantity: 1,                      
-                image: product.image || 'https://placehold.co/100x100/webp?text=100x100'
+            allData.push({
+                variantId: product.variantId,
+                sku: product.sku,
+                name: product.name,
+                productName: product.productName,
+                variantName: product.variantName,
+                price: product.price,
+                quantity: product.quantity || 1,
+                image: product.imageUrl || product.image || 'https://placehold.co/100x100/webp?text=100x100'
             });
         }
+        
+        this.data = allData;
     },
-    
+
+    loadReorderCart() {
+        const reorderCart = sessionStorage.getItem('reorder_cart');
+        if (reorderCart) {
+            try {
+                // Clear old cart first
+                sessionStorage.removeItem('pos_cart_data');
+                
+                const items = JSON.parse(reorderCart);
+                items.forEach(item => this.addItem(item));
+                sessionStorage.removeItem('reorder_cart');
+                updateCartDisplay();
+            } catch (error) {
+                console.error('Error loading reorder cart:', error);
+            }
+        }
+    },
+
     updateQuantity(variantId, delta) {
-        const item = this.findItem(variantId);
+        const allData = this.data;
+        const item = allData.find(i => i.variantId === variantId);
+        
         if (item) {
             item.quantity += delta;
             if (item.quantity <= 0) {
                 this.removeItem(variantId);
+            } else {
+                this.data = allData;
             }
         }
     },
-    
+
     removeItem(variantId) {
-        const orderId = this.getActiveOrderId();
-        this.data[orderId] = this.getItems().filter(item => item.variantId !== variantId);
+        this.data = this.data.filter(item => item.variantId !== variantId);
     },
-    
+
     clear() {
-        const orderId = this.getActiveOrderId();
-        if (this.getItems().length > 0) {
-            if (confirm('Xóa tất cả sản phẩm?')) {
-                this.data[orderId] = [];
-            }
+        if (this.data.length > 0 && confirm('Xóa tất cả sản phẩm?')) {
+            this.data = [];
         }
     },
-    
-    // ✅ Get data theo format OrderViewModel
+
     getOrderData() {
-        const items = this.getItems();
+        const items = this.data;
         return {
             items: items.map(item => ({
-                variantId: item.variantId,  // ✅ Guid
-                quantity: item.quantity,    // ✅ int
-                unitPrice: item.price       // ✅ decimal
+                variantId: item.variantId,
+                quantity: item.quantity,
+                unitPrice: item.price
             })),
             totalAmount: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
             totalItems: items.reduce((sum, item) => sum + item.quantity, 0)
@@ -86,10 +106,10 @@ function addToCart(product) {
         alert('Dữ liệu sản phẩm không hợp lệ!');
         return;
     }
-    
+
     Cart.addItem(product);
     updateCartDisplay();
-    
+
     // Close modal if exists
     const modal = document.getElementById('variantModal');
     const sheet = document.getElementById('productListSheet');
@@ -138,7 +158,7 @@ function updateCartDisplay() {
 
     emptyCart?.classList.add('hidden');
     cartItemsContainer?.classList.remove('hidden');
-    
+
     const html = items.map(item => `
         <div class="bg-white border border-gray-200 rounded-lg p-3 flex items-center gap-3">
             <button onclick="removeFromCart('${item.variantId}')" 
@@ -169,7 +189,7 @@ function updateCartDisplay() {
             </div>
         </div>
     `).join('');
-    
+
     cartItemsContainer.innerHTML = html;
 
     updateOrderSummary();
@@ -182,5 +202,3 @@ function updateOrderSummary() {
     document.getElementById('totalAmount').textContent = orderData.totalAmount.toLocaleString() + ' ₫';
     document.getElementById('customerPay').textContent = orderData.totalAmount.toLocaleString() + ' ₫';
 }
-
-
