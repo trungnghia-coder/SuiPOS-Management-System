@@ -2,56 +2,66 @@
     ViewData["Title"] = "Báo cáo bán hàng";
 }
 
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/reports.js"></script>
+}
+
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     @await Component.InvokeAsync("PageHeader", new { title = "Báo cáo bán hàng", showTabs = false })
-
-    <!-- Filters -->
-    
 
     <!-- KPI Cards -->
     <div class="p-6">
         <div class="grid grid-cols-5 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
                 <div class="text-sm text-gray-600 mb-1">Doanh thu thuần</div>
-                <div class="text-2xl font-bold text-gray-900">27,588,030</div>
+                <div class="text-2xl font-bold text-gray-900" id="totalRevenue">0</div>
             </div>
             <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-teal-500">
                 <div class="text-sm text-gray-600 mb-1">Đã thu</div>
-                <div class="text-2xl font-bold text-gray-900">11,086,200</div>
+                <div class="text-2xl font-bold text-gray-900" id="totalReceived">0</div>
             </div>
             <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-500">
                 <div class="text-sm text-gray-600 mb-1">Thực nhận</div>
-                <div class="text-2xl font-bold text-gray-900">10,775,420</div>
+                <div class="text-2xl font-bold text-gray-900" id="actualReceived">0</div>
             </div>
             <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-orange-500">
                 <div class="text-sm text-gray-600 mb-1">Đơn hàng</div>
-                <div class="text-2xl font-bold text-gray-900">40</div>
+                <div class="text-2xl font-bold text-gray-900" id="totalOrders">0</div>
             </div>
             <div class="bg-white rounded-lg shadow-sm p-4 border-l-4 border-gray-400">
                 <div class="text-sm text-gray-600 mb-1">Sản phẩm</div>
-                <div class="text-2xl font-bold text-gray-900">92</div>
+                <div class="text-2xl font-bold text-gray-900" id="totalProducts">0</div>
             </div>
         </div>
         <div class="bg-white rounded-lg shadow-sm mb-6">
 
             <div class="bg-white border-b border-gray-200 px-6 py-4">
-                <div class="flex justify-between w-1/3">
+                <div class="flex gap-4 items-end">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Từ ngày</label>
                         <input type="date"
-                               value="2007-07-09"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div class="flex items-center mt-2">
-                        <i class="fa-solid fa-arrow-right"></i>
+                               id="fromDate"
+                               class="px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Đến ngày</label>
                         <input type="date"
-                               value="2025-07-09"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               id="toDate"
+                               class="px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Nhóm theo</label>
+                        <select id="groupBy" class="px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="day">Ngày</option>
+                            <option value="month">Tháng</option>
+                            <option value="year">Năm</option>
+                        </select>
+                    </div>
+                    <button onclick="loadReport()" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                        <i class="fas fa-sync mr-2"></i>Cập nhật
+                    </button>
                 </div>
             </div>
 
@@ -83,46 +93,8 @@
                     <div class="mb-4">
                         <h3 class="text-lg font-bold text-gray-900">Sản phẩm bán chạy</h3>
                     </div>
-                    <div class="space-y-4">
-                        <!-- Product 1 -->
-                        <div class="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                            <img src="https://placehold.co/60x60/webp?text=Product" alt="Product" class="w-14 h-14 object-cover rounded">
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-900 line-clamp-2">Pijama Tole Lụng Sát Nách Tay Nhún In Hoa Tiết Nitimo</div>
-                                <div class="text-xs text-gray-500 mt-1">Đã bán được 10 sản phẩm</div>
-                                <div class="text-sm font-semibold text-blue-600 mt-1">Doanh thu thuần: 2,055,000</div>
-                            </div>
-                        </div>
-
-                        <!-- Product 2 -->
-                        <div class="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                            <img src="https://placehold.co/60x60/webp?text=Product" alt="Product" class="w-14 h-14 object-cover rounded">
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-900 line-clamp-2">Bộ Dài Cổ Pijama Tay Con Chất Liệu Lụa Tuyết Nitimo</div>
-                                <div class="text-xs text-gray-500 mt-1">Đã bán được 9 sản phẩm</div>
-                                <div class="text-sm font-semibold text-blue-600 mt-1">Doanh thu thuần: 4,097,200</div>
-                            </div>
-                        </div>
-
-                        <!-- Product 3 -->
-                        <div class="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                            <img src="https://placehold.co/60x60/webp?text=Product" alt="Product" class="w-14 h-14 object-cover rounded">
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-900 line-clamp-2">Bộ Tole Lụng Tay Nhi Nitimo hoa tiết Hoa 3D Hàn Chế Co Rút Độ Bền Cao</div>
-                                <div class="text-xs text-gray-500 mt-1">Đã bán được 9 sản phẩm</div>
-                                <div class="text-sm font-semibold text-blue-600 mt-1">Doanh thu thuần: 1,880,000</div>
-                            </div>
-                        </div>
-
-                        <!-- Product 4 -->
-                        <div class="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                            <img src="https://placehold.co/60x60/webp?text=Product" alt="Product" class="w-14 h-14 object-cover rounded">
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-900 line-clamp-2">Bộ Tole Lụng Tay Nhi Nitimo hoa tiết 3D Hàn Chế Độ Bền Cao</div>
-                                <div class="text-xs text-gray-500 mt-1">Đã bán được 8 sản phẩm</div>
-                                <div class="text-sm font-semibold text-blue-600 mt-1">Doanh thu thuần: 1,650,000</div>
-                            </div>
-                        </div>
+                    <div class="space-y-4" id="topProductsList">
+                        <div class="text-center py-8 text-gray-500">Đang tải...</div>
                     </div>
                 </div>
             </div>
@@ -130,109 +102,3 @@
     </div>
 </div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Sample data
-        const labels = ['01/01', '03/01', '05/01', '09/01', '07/01', '09/01', '09/01', '10/01', '12/01', '13/01', '14/01', '15/01', '16/01', '17/01', '20/01', '21/01', '22/01', '25/01', '26/01', '28/01', '30/01', '31/01', '02/02', '04/02', '05/02', '06/02', '08/02', '09/02'];
-        
-        const revenueData = [1200000, 2600000, 2400000, 800000, 100000, 600000, 2700000, 600000, 1200000, 2800000, 4500000, 1500000, 100000, 1000000, 400000, 200000, 100000, 700000, 700000, 100000, 100000, 100000, 1200000, 400000, 800000, 1000000, 800000, 400000];
-        
-        const orderData = [2, 6, 3, 2, 2, 3, 3, 3, 2, 1, 5, 1, 0, 2, 2, 1, 1, 1, 3, 1, 1, 1, 3, 1, 1, 2, 2, 1];
-
-        const ctx = document.getElementById('salesChart');
-        
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        type: 'line',
-                        label: 'Doanh thu thuần',
-                        data: revenueData,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        pointBackgroundColor: 'rgb(59, 130, 246)',
-                        yAxisID: 'y',
-                        tension: 0.4
-                    },
-                    {
-                        type: 'bar',
-                        label: 'Đơn hàng',
-                        data: orderData,
-                        backgroundColor: 'rgb(249, 115, 22)',
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    if (context.datasetIndex === 0) {
-                                        label += new Intl.NumberFormat('vi-VN').format(context.parsed.y);
-                                    } else {
-                                        label += context.parsed.y;
-                                    }
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Tổng tiền'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return new Intl.NumberFormat('vi-VN').format(value);
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Số lượng'
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        max: 10
-                    },
-                }
-            }
-        });
-    </script>
-}
