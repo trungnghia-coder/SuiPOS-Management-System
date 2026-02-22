@@ -91,5 +91,21 @@ namespace SuiPOS.Services.Implementations
 
             return (false, "Cập nhật thất bại, vui lòng thử lại.");
         }
+
+        public async Task<List<CustomerSearchVM>> SearchAsync(string query)
+        {
+            return await _context.Customers
+                .Where(c => c.IsActive &&
+                    (c.Name.Contains(query) || c.Phone.Contains(query)))
+                .Select(c => new CustomerSearchVM
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Phone = c.Phone
+                })
+                .OrderBy(c => c.Name)
+                .Take(10)
+                .ToListAsync();
+        }
     }
 }

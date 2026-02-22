@@ -63,5 +63,28 @@ namespace SuiPOS.Controllers
             }
             return Json(new { success = false, message = "Không thể xóa khách hàng này." });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Search(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return Json(new List<object>());
+            }
+
+            var customers = await _customerService.SearchAsync(query);
+            
+            var results = customers.Select(c => new
+            {
+                id = c.Id,
+                name = c.Name,
+                phone = c.Phone,
+                avatar = string.Join("", c.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Take(2)
+                    .Select(w => w[0].ToString().ToUpper()))
+            }).ToList();
+
+            return Json(results);
+        }
     }
 }
