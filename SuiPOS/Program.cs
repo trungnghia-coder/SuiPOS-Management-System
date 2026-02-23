@@ -46,6 +46,9 @@ builder.Services.AddScoped<IAttributeService, AttributeService>();
 //Register SystemSetting Services
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
+//Register Promotion Services
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

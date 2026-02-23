@@ -12,11 +12,11 @@ namespace ECommerceMVC.Helpers
             return !string.IsNullOrEmpty(GetCookie(context, "suipos_ac"));
         }
 
-        public static void SetCookie(HttpContext context, string key, string value, int? expireTimeInMinutes)
+        public static void SetCookie(HttpContext context, string key, string value, int? expireTimeInMinutes, bool httpOnly = true)
         {
             var options = new CookieOptions
             {
-                HttpOnly = true,
+                HttpOnly = httpOnly, // ? Allow override for client-side access
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
                 Expires = expireTimeInMinutes.HasValue
@@ -25,6 +25,7 @@ namespace ECommerceMVC.Helpers
             };
             context.Response.Cookies.Append(key, value, options);
         }
+
 
         public static void RemoveCookie(HttpContext context, string key)
         {

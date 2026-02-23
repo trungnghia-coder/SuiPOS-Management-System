@@ -45,21 +45,23 @@ namespace SuiPOS.Controllers
             }
 
             var accessToken = _jwtHelper.GenerateAccessToken(staff.Username, staff.FullName, staff.Role.Id);
-            CookieHelper.SetCookie(HttpContext, "suipos_ac", accessToken, 30);
+            CookieHelper.SetCookie(HttpContext, "suipos_ac", accessToken, 30, httpOnly: true);
 
             if (loginDto.RememberMe)
             {
                 var refreshToken = _jwtHelper.GenerateRefreshToken();
-                CookieHelper.SetCookie(HttpContext, "suipos_rf", refreshToken, 10080);
+                CookieHelper.SetCookie(HttpContext, "suipos_rf", refreshToken, 10080, httpOnly: true);
             }
 
-            CookieHelper.SetCookie(HttpContext, "staff_id", staff.Id.ToString(), 30);
-            CookieHelper.SetCookie(HttpContext, "staff_username", staff.Username, 30);
-            CookieHelper.SetCookie(HttpContext, "staff_name", staff.FullName, 30);
-            CookieHelper.SetCookie(HttpContext, "staff_role", staff.Role?.Name ?? "Staff", 30);
+            // ✅ Staff info cookies - allow JavaScript access
+            CookieHelper.SetCookie(HttpContext, "staff_id", staff.Id.ToString(), 30, httpOnly: false);
+            CookieHelper.SetCookie(HttpContext, "staff_username", staff.Username, 30, httpOnly: false);
+            CookieHelper.SetCookie(HttpContext, "staff_name", staff.FullName, 30, httpOnly: false);
+            CookieHelper.SetCookie(HttpContext, "staff_role", staff.Role?.Name ?? "Staff", 30, httpOnly: false);
 
             TempData["SuccessMessage"] = $"Chào mừng {staff.FullName}!";
             return RedirectToAction("Index", "POS");
+
         }
 
         // GET: /Auth/Register
@@ -142,23 +144,44 @@ namespace SuiPOS.Controllers
 
         // ✅ Check if access token is still valid
         [HttpGet]
-        public IActionResult CheckToken()
+        public async Task<IActionResult> CheckToken()
         {
-            var token = CookieHelper.GetCookie(HttpContext, "suipos_ac");
-            
-            if (string.IsNullOrEmpty(token))
+            var accessToken = CookieHelper.GetCookie(HttpContext, "suipos_ac");
+
+            if (!string.IsNullOrEmpty(accessToken))
             {
-                return Unauthorized(new { success = false, message = "No token" });
+                var principal = _jwtHelper.ValidateToken(accessToken);
+                if (principal != null)
+                {
+                    return Ok(new { success = true, message = "Access token valid" });
+                }
             }
 
-            var principal = _jwtHelper.ValidateToken(token);
-            
-            if (principal == null)
+            var refreshToken = CookieHelper.GetCookie(HttpContext, "suipos_rf");
+
+            if (string.IsNullOrEmpty(refreshToken))
             {
-                return Unauthorized(new { success = false, message = "Invalid token" });
+                return Unauthorized(new { success = false, message = "No refresh token" });
             }
 
-            return Ok(new { success = true, message = "Token valid" });
+            var username = CookieHelper.GetCookie(HttpContext, "staff_username");
+
+            if (string.IsNullOrEmpty(username))
+            {
+                return Unauthorized(new { success = false, message = "Session expired" });
+            }
+
+            var staff = await _authService.GetStaffByUsernameAsync(username);
+
+            if (staff == null)
+            {
+                return Unauthorized(new { success = false, message = "User not found" });
+            }
+
+            var newAccessToken = _jwtHelper.GenerateAccessToken(staff.Username, staff.FullName, staff.Role.Id);
+            CookieHelper.SetCookie(HttpContext, "suipos_ac", newAccessToken, 30, httpOnly: true);
+
+            return Ok(new { success = true, message = "Access token renewed from refresh token" });
         }
     }
 }

@@ -11,20 +11,20 @@ const AuthInterceptor = {
             const response = await fetch('/Auth/RefreshToken', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                }
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include' // Important: send cookies
             });
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Token refreshed successfully');
+                console.log('? Token refreshed successfully');
                 return data.success;
             }
-            console.warn('Token refresh failed with status:', response.status);
+            console.warn('?? Token refresh failed with status:', response.status);
             return false;
         } catch (error) {
-            console.error('Token refresh failed:', error);
+            console.error('? Token refresh error:', error);
             return false;
         }
     },
@@ -36,7 +36,7 @@ const AuthInterceptor = {
             });
         }
 
-        console.log('Attempting to refresh token...');
+        console.log('?? Attempting to refresh token...');
         this.isRefreshing = true;
         const refreshed = await this.refreshAccessToken();
         this.isRefreshing = false;
@@ -48,7 +48,7 @@ const AuthInterceptor = {
         } else {
             this.failedQueue.forEach(promise => promise.reject());
             this.failedQueue = [];
-            console.log('Redirecting to login...');
+            console.log('?? Redirecting to login...');
             window.location.href = '/Auth/Login';
             return false;
         }
@@ -60,12 +60,14 @@ const originalFetch = window.fetch;
 window.fetch = async function(...args) {
     let response = await originalFetch(...args);
 
-    // If 401 Unauthorized
-    if (response.status === 401) {
+    // If 401 Unauthorized and not already a refresh request
+    if (response.status === 401 && !args[0].includes('/Auth/RefreshToken')) {
+        console.log('?? 401 Unauthorized detected, attempting refresh...');
         const refreshed = await AuthInterceptor.handleUnauthorized();
         
         if (refreshed) {
             // Retry original request
+            console.log('?? Retrying original request...');
             response = await originalFetch(...args);
         }
     }
@@ -73,10 +75,40 @@ window.fetch = async function(...args) {
     return response;
 };
 
-// Check token expiry periodically (every 5 minutes)
-setInterval(async () => {
-    const response = await fetch('/Auth/CheckToken');
-    if (!response.ok) {
-        await AuthInterceptor.refreshAccessToken();
+// ? Check token every 2 minutes (more frequent)
+let tokenCheckInterval;
+
+function startTokenCheck() {
+    // Clear existing interval if any
+    if (tokenCheckInterval) {
+        clearInterval(tokenCheckInterval);
     }
-}, 5 * 60 * 1000);
+    
+    tokenCheckInterval = setInterval(async () => {
+        try {
+            const response = await fetch('/Auth/CheckToken', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                console.log('? Token check failed, refreshing...');
+                await AuthInterceptor.refreshAccessToken();
+            } else {
+                console.log('? Token still valid');
+            }
+        } catch (error) {
+            console.error('? Token check error:', error);
+        }
+    }, 2 * 60 * 1000); // ? Every 2 minutes instead of 5
+}
+
+// Start checking when page loads
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startTokenCheck);
+} else {
+    startTokenCheck();
+}
+
+console.log('?? Auth interceptor initialized - checking token every 2 minutes');
+
+
