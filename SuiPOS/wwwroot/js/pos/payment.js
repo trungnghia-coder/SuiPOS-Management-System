@@ -147,20 +147,25 @@ function updatePaymentSummary() {
     const cartItems = Cart.getItems();
 
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // ✅ Get discount from promotion
+    const discountAmount = getCurrentDiscount ? getCurrentDiscount() : 0;
+    const finalAmount = totalAmount - discountAmount;
+    
     const totalPaid = methods.reduce((sum, method) => sum + method.amount, 0);
-    const change = totalPaid - totalAmount;
+    const change = totalPaid - finalAmount; // Use finalAmount (after discount)
 
-    document.getElementById('customerGive').textContent = totalPaid.toLocaleString();
+    document.getElementById('customerGive').textContent = totalPaid.toLocaleString() + 'đ';
     
     const changeElement = document.getElementById('changeAmount');
     const changeLabel = document.getElementById('changeLabel');
     
     if (change >= 0) {
         changeLabel.textContent = 'Tiền thừa trả khách';
-        changeElement.textContent = change.toLocaleString();
+        changeElement.textContent = change.toLocaleString() + 'đ';
     } else {
         changeLabel.textContent = 'Khách cần trả thêm';
-        changeElement.textContent = Math.abs(change).toLocaleString();
+        changeElement.textContent = Math.abs(change).toLocaleString() + 'đ';
     }
 }
 
@@ -172,13 +177,17 @@ function updateOrderSummary() {
     const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     document.getElementById('totalItems').textContent = `${totalItems} sản phẩm`;
-    document.getElementById('totalAmount').textContent = totalAmount.toLocaleString();
-    document.getElementById('customerPay').textContent = totalAmount.toLocaleString();
+    document.getElementById('totalAmount').textContent = totalAmount.toLocaleString() + 'đ';
+    
+    // ✅ Calculate final amount after discount
+    const discountAmount = getCurrentDiscount ? getCurrentDiscount() : 0;
+    const finalAmount = totalAmount - discountAmount;
+    document.getElementById('customerPay').textContent = finalAmount.toLocaleString() + 'đ';
 
     // ONLY auto-set first payment if it's the ONLY payment and amount is 0
     const methods = Payment.methods;
-    if (methods.length === 1 && methods[0].amount === 0 && totalAmount > 0) {
-        Payment.updateMethod(methods[0].id, 'amount', totalAmount);
+    if (methods.length === 1 && methods[0].amount === 0 && finalAmount > 0) {
+        Payment.updateMethod(methods[0].id, 'amount', finalAmount);
         renderPaymentMethods();
     } else {
         // Don't re-render if multiple payments exist (to preserve user input)
@@ -186,22 +195,34 @@ function updateOrderSummary() {
     }
 }
 
+
 async function submitOrder() {
-    const cartData = Cart.getOrderData();
-    const customer = CustomerState.customer;
-    const payments = Payment.methods;
+const cartData = Cart.getOrderData();
+const customer = CustomerState.customer;
+const payments = Payment.methods;
 
-    if (!cartData.items.length) {
-        alert('Giỏ hàng trống!');
-        return;
-    }
+if (!cartData.items.length) {
+    alert('Giỏ hàng trống!');
+    return;
+}
 
-    if (!payments.length || payments.every(p => p.amount === 0)) {
-        alert('Vui lòng nhập số tiền thanh toán!');
-        return;
-    }
+if (!payments.length || payments.every(p => p.amount === 0)) {
+    alert('Vui lòng nhập số tiền thanh toán!');
+    return;
+}
 
-    // Get staff ID from cookie or user context
+// ✅ Validate: Khách phải đưa đủ tiền
+const discountAmount = getCurrentDiscount ? getCurrentDiscount() : 0;
+const finalAmount = cartData.totalAmount - discountAmount;
+const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    
+if (totalPaid < finalAmount) {
+    const shortage = finalAmount - totalPaid;
+    alert(`Khách chưa đưa đủ tiền!\nCòn thiếu: ${shortage.toLocaleString()}đ`);
+    return;
+}
+
+    // ✅ Get staff ID from cookie and validate
     const getCookie = (name) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -209,12 +230,39 @@ async function submitOrder() {
         return null;
     };
     
+    // ✅ Debug: Log all cookies
+    console.log('🍪 All cookies:', document.cookie);
+    
     const staffIdString = getCookie('staff_id');
-    const staffId = staffIdString ? staffIdString : null; // Keep as string, backend will parse
+    const staffName = getCookie('staff_name');
+    
+    console.log('🍪 staff_id cookie:', staffIdString);
+    console.log('🍪 staff_name cookie:', staffName);
+    
+    let staffId = null;
+    
+    // ✅ Validate if it's a valid GUID format
+    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (staffIdString && staffIdString !== 'null' && staffIdString !== 'undefined') {
+        if (guidRegex.test(staffIdString)) {
+            staffId = staffIdString;
+            console.log('✅ Valid Staff ID:', staffId);
+        } else {
+            console.error('❌ Invalid GUID format for staff_id:', staffIdString);
+            console.error('❌ Testing GUID regex on value:', staffIdString, 'Result:', guidRegex.test(staffIdString));
+        }
+    } else {
+        console.warn('⚠️ No staff_id cookie found or invalid value:', staffIdString);
+        console.warn('⚠️ Please check if you are logged in');
+    }
+    
+    // Get order note from textarea
+    const orderNote = document.getElementById('orderNote')?.value.trim() || null;
 
     const orderData = {
         customerId: customer ? customer.id : null,
-        staffId: staffId,
+        staffId: staffId, // ✅ Send as Guid string or null
         items: cartData.items,
         payments: payments.map(p => ({
             method: p.type,
@@ -222,12 +270,16 @@ async function submitOrder() {
             reference: null
         })),
         totalAmount: cartData.totalAmount,
-        amountReceived: payments.reduce((sum, p) => sum + p.amount, 0),
-        discountAmount: 0,
-        note: null
+        amountReceived: totalPaid,
+        discountAmount: discountAmount,
+        note: orderNote
     };
 
-    console.log('Order Data:', orderData); // Debug log
+    console.log('📦 Submitting Order Data:', orderData);
+    console.log('📦 StaffId:', { type: typeof staffId, value: staffId, isNull: staffId === null });
+
+
+
 
     try {
         const response = await fetch('/POS/Checkout', {
@@ -447,9 +499,29 @@ function updateInvoiceModalWithData(orderData, settings) {
         <div class="text-center text-xs font-bold mt-2">
             Cảm ơn quý khách!
         </div>
+        
+        <!-- Barcode -->
+        <div class="text-center mt-3">
+            <svg id="barcode-${orderData.orderCode}"></svg>
+        </div>
     `;
 
     invoiceContent.innerHTML = invoiceHTML;
+    
+    // Generate barcode if JsBarcode is available
+    if (typeof JsBarcode !== 'undefined') {
+        try {
+            JsBarcode(`#barcode-${orderData.orderCode}`, orderData.orderCode, {
+                format: "CODE128",
+                width: 1,
+                height: 30,
+                displayValue: true,
+                fontSize: 10
+            });
+        } catch (e) {
+            console.error('Barcode generation failed:', e);
+        }
+    }
 }
 
 function getPaymentMethodName(method) {

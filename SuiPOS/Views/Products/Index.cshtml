@@ -103,12 +103,13 @@
                                                          alt="@product.ProductName"
                                                          class="w-12 h-12 object-cover rounded-lg">
                                                     <div>
-                                                        <a href="@Url.Action("Details", "Products", new { id = product.Id })"
+                                                        <a href="@Url.Action("Edit", "Products", new { id = product.Id })"
                                                            class="text-sm font-medium text-blue-600 hover:underline">
                                                             @product.ProductName
                                                         </a>
                                                     </div>
                                                 </div>
+
                                             </td>
                                             <td class="px-4 py-4 text-center text-sm">@product.Available</td>
                                             <td class="px-4 py-4 text-center text-sm">@product.Inventory</td>

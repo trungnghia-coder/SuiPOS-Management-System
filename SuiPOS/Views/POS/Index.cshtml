@@ -8,6 +8,7 @@
 @section Scripts {
     <script src="~/js/pos/cart.js"></script>
     <script src="~/js/pos/payment.js"></script>
+    <script src="~/js/pos/promotion-selector.js"></script>
     <script src="~/js/pos/ui-events.js"></script>
     <script src="~/js/pos/customer-search.js"></script>
     <script src="~/js/product-management.js"></script>
@@ -138,13 +139,16 @@
                     <span class="text-sm font-medium">Danh sách sản phẩm</span>
                 </button>
                 
-                <button class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+                <div class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
                     <i class="fas fa-user text-gray-600"></i>
                     @{
-                        var sellerName = Context.Request.Cookies["staff_name"] ?? "Nguyễn Trung Nghĩa";
+                        var sellerName = Context.Request.Cookies["staff_name"] ?? "Guest";
+                        var staffId = Context.Request.Cookies["staff_id"] ?? "";
                     }
-                </button>
+                    <span class="text-sm font-medium">@sellerName</span>
+                </div>
             </div>
+
         </div>
 
         <!-- RIGHT COLUMN: Customer & Payment (4 cols) -->
@@ -208,11 +212,24 @@
 
                     <!-- Khuyến mãi -->
                     <div class="flex justify-between text-sm items-center">
-                        <span class="text-blue-600 cursor-pointer hover:underline">Khuyến mãi</span>
-                        <button class="text-blue-600 text-xs flex items-center gap-1 hover:underline">
+                        <div>
+                            <span class="text-gray-700">Khuyến mãi</span>
+                            <span id="appliedPromotionName" class="text-xs text-green-600 ml-2"></span>
+                        </div>
+                        <button onclick="openPromotionSelector()" class="text-blue-600 text-xs flex items-center gap-1 hover:underline">
                             <i class="fas fa-gift"></i>
                             Gợi ý khuyến mãi
                         </button>
+                    </div>
+                    
+                    <div id="discountRow" class="hidden flex justify-between text-sm items-center text-green-600">
+                        <span>Giảm giá</span>
+                        <div class="flex items-center gap-2">
+                            <span id="discountAmount" class="font-semibold">0</span>
+                            <button onclick="removePromotion()" class="text-gray-400 hover:text-red-500">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="h-px bg-gray-300 my-2"></div>
@@ -252,7 +269,7 @@
                     </div>
                 </div>
 
-                <textarea placeholder="Ghi chú đơn hàng" 
+                <textarea id="orderNote" placeholder="Ghi chú đơn hàng" 
                           class="w-full mt-3 p-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" 
                           rows="2"></textarea>
             </div>
@@ -263,6 +280,29 @@
                     <span>Thanh toán</span>
                     <span class="text-sm font-normal bg-blue-500 px-2 py-1 rounded">F9</span>
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Promotion Selection Modal -->
+<div id="promotionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-bold">Chọn khuyến mãi</h2>
+            <button onclick="closePromotionSelector()" class="p-2 hover:bg-gray-100 rounded-lg">
+                <i class="fas fa-times text-gray-600"></i>
+            </button>
+        </div>
+
+        <!-- Promotions list -->
+        <div class="flex-1 overflow-y-auto p-4">
+            <div id="promotionsList" class="space-y-2">
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-gift text-4xl mb-2"></i>
+                    <p>Đang tải khuyến mãi...</p>
+                </div>
             </div>
         </div>
     </div>

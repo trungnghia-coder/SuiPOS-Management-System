@@ -49,9 +49,19 @@ namespace SuiPOS.Services.Implementations
                             Stock = v.Stock,
                             VariantCombination = v.Combination ?? ""
                         };
+                        
+                        // ✅ CRITICAL: Save SelectedAttributeValueIds to SelectedValues
+                        if (v.SelectedAttributeValueIds != null && v.SelectedAttributeValueIds.Any())
+                        {
+                            variant.SelectedValues = await _context.AttributeValues
+                                .Where(av => v.SelectedAttributeValueIds.Contains(av.Id))
+                                .ToListAsync();
+                        }
+                        
                         _context.ProductVariants.Add(variant);
                     }
                 }
+
 
                 _context.Products.Add(product);
                 await _context.SaveChangesAsync();
@@ -91,6 +101,7 @@ namespace SuiPOS.Services.Implementations
         {
             return await _context.Products
                 .Include(p => p.Variants)
+                    .ThenInclude(v => v.SelectedValues) // ✅ Include SelectedValues for variants
                 .Include(p => p.Category)
                 .Where(p => p.Id == id)
                 .Select(p => new ProductVM
@@ -107,11 +118,18 @@ namespace SuiPOS.Services.Implementations
                         SKU = v.SKU,
                         Price = v.Price,
                         Stock = v.Stock,
-                        Combination = v.VariantCombination
+                        Combination = v.VariantCombination,
+                        // ✅ Include SelectedValues so Controller can extract IDs
+                        SelectedValues = v.SelectedValues.Select(sv => new AttributeValueVM
+                        {
+                            Id = sv.Id,
+                            Value = sv.Value
+                        }).ToList()
                     }).ToList()
                 })
                 .FirstOrDefaultAsync();
         }
+
 
         public async Task<(bool Success, string Message)> UpdateAsync(Guid id, ProductInputVM model)
         {
@@ -151,10 +169,20 @@ namespace SuiPOS.Services.Implementations
                         {
                             existingVariant.VariantCombination = vModel.Combination;
                         }
+                        
+                        // ✅ Update SelectedValues for existing variant
+                        if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
+                        {
+                            // Clear existing and reload
+                            existingVariant.SelectedValues.Clear();
+                            existingVariant.SelectedValues = await _context.AttributeValues
+                                .Where(av => vModel.SelectedAttributeValueIds.Contains(av.Id))
+                                .ToListAsync();
+                        }
                     }
                     else
                     {
-                        _context.ProductVariants.Add(new ProductVariant
+                        var newVariant = new ProductVariant
                         {
                             Id = Guid.NewGuid(),
                             ProductId = product.Id,
@@ -162,9 +190,20 @@ namespace SuiPOS.Services.Implementations
                             Price = vModel.Price,
                             Stock = vModel.Stock,
                             VariantCombination = vModel.Combination ?? ""
-                        });
+                        };
+                        
+                        // ✅ Set SelectedValues for new variant
+                        if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
+                        {
+                            newVariant.SelectedValues = await _context.AttributeValues
+                                .Where(av => vModel.SelectedAttributeValueIds.Contains(av.Id))
+                                .ToListAsync();
+                        }
+                        
+                        _context.ProductVariants.Add(newVariant);
                     }
                 }
+
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
