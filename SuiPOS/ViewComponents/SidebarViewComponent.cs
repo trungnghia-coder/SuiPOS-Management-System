@@ -11,7 +11,9 @@ namespace SuiPOS.ViewComponents
                 new MenuItem { Name = "Bán hàng", Icon = "shopping-cart", Url = "/POS/Index", IsActive = false },
                 new MenuItem { Name = "Tra cứu bán hàng", Icon = "receipt", Url = "/Orders/Index", IsActive = false },
                 new MenuItem { Name = "Sản phẩm", Icon = "product", Url = "/Products/Index", IsActive = false },
+                new MenuItem { Name = "Biến thể", Icon = "sliders", Url = "/Attributes/Index", IsActive = false },
                 new MenuItem { Name = "Khách hàng", Icon = "customer", Url = "/Customers/Index", IsActive = false },
+                new MenuItem { Name = "Khuyến mãi", Icon = "tag", Url = "/Promotions/Index", IsActive = false },
                 new MenuItem { Name = "Báo cáo", Icon = "chart-bar", Url = "/Reports/Index", IsActive = false },
                 new MenuItem { Name = "Cấu hình", Icon = "settings", Url = "/Settings/Index", IsActive = false }
             };

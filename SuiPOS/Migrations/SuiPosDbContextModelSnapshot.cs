@@ -320,6 +320,9 @@ namespace SuiPOS.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("DiscountValue")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -349,6 +352,9 @@ namespace SuiPOS.Migrations
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

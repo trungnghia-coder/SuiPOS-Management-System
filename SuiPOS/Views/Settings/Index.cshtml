@@ -40,54 +40,6 @@
                 </div>
             </div>
 
-            <!-- Invoice Settings Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h2 class="text-lg font-bold text-gray-900 mb-4">Cấu hình hóa đơn</h2>
-                
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
-                            <div class="font-medium text-gray-900">Hiển thị barcode</div>
-                            <div class="text-sm text-gray-500">Hiển thị mã vạch trên hóa đơn</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="showBarcode" @(Model.ShowBarcode ? "checked" : "") class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
-                            <div class="font-medium text-gray-900">Hiển thị logo</div>
-                            <div class="text-sm text-gray-500">Hiển thị logo cửa hàng trên hóa đơn</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="showLogo" @(Model.ShowLogo ? "checked" : "") class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
-                            <div class="font-medium text-gray-900">Hiển thị QR Code</div>
-                            <div class="text-sm text-gray-500">Hiển thị mã QR thanh toán trên hóa đơn</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="showQRCode" @(Model.ShowQRCode ? "checked" : "") class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="font-medium text-gray-900 mb-3">Xem trước mẫu hóa đơn</div>
-                        <button onclick="openInvoicePreview()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                            <i class="fas fa-eye"></i>
-                            Xem trước & In thử
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Save Button -->
             <div class="flex justify-end">
                 <button id="saveSettingsBtn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
@@ -106,9 +58,8 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async funct
         storePhone: document.getElementById('storePhone').value,
         storeAddress: document.getElementById('storeAddress').value,
         invoiceFooterMessage: document.getElementById('invoiceFooter').value,
-        showBarcode: document.getElementById('showBarcode').checked,
-        showLogo: document.getElementById('showLogo').checked,
-        showQRCode: document.getElementById('showQRCode').checked,
+        showBarcode: true,  
+        showLogo: true,     
         autoPrint: true,
         paperSize: 'K80',
         printerName: ''
