@@ -23,6 +23,9 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<SuiPosDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+//Register ADO.NET 
+builder.Services.AddSingleton<IDbConnectionFactory, SqlDbConnectionFactory>();
+
 // Configure Cloudinary settings from appsettings.json
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("CloudinarySettings"));
