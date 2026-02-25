@@ -72,7 +72,7 @@ window.printInvoicePDF = function () {
                             displayValue: false,
                             margin: 0
                         });
-                    } catch(e) { console.error(e); }
+                    } catch(e) { }
 
                     setTimeout(() => {
                         window.focus();
@@ -86,7 +86,6 @@ window.printInvoicePDF = function () {
     doc.close();
 };
 
-// ESC to close
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const modal = document.getElementById('invoicePreviewModal');
@@ -96,5 +95,3 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Debug: Log when script loads
-console.log('Invoice preview functions loaded successfully');

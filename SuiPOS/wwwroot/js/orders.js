@@ -25,7 +25,6 @@ async function loadOrders() {
         
         renderOrderList(currentOrders);
     } catch (error) {
-        console.error('Error loading orders:', error);
         alert('Lỗi khi tải danh sách đơn hàng');
     }
 }
@@ -79,7 +78,6 @@ async function selectOrder(orderId) {
         
         renderOrderDetail(order);
     } catch (error) {
-        console.error('Error loading order detail:', error);
         alert('Lỗi khi tải chi tiết đơn hàng');
     }
 }
@@ -102,10 +100,11 @@ function renderOrderDetail(order) {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="p-2 hover:bg-gray-100 rounded-lg">
+                    <button onclick="printOrderInvoice('${order.id}')" class="p-2 hover:bg-gray-100 rounded-lg" title="In hóa đơn">
                         <i class="fas fa-print text-gray-600"></i>
                     </button>
                     <div class="relative">
+
                         <select id="orderActionDropdown" class="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white">
                             <option value="" selected disabled>Thao tác</option>
                             ${order.status === 'Completed' ? `
@@ -411,7 +410,15 @@ function formatDateTime(dateString) {
     });
 }
 
-// ========== INIT ==========
+// ========== PRINT ORDER INVOICE ==========
+async function printOrderInvoice(orderId) {
+    if (typeof loadOrderAndPrint === 'function') {
+        await loadOrderAndPrint(orderId);
+    } else {
+        alert('Chức năng in hóa đơn chưa sẵn sàng. Vui lòng tải lại trang!');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Set default date range (last 30 days)
     const today = new Date();
