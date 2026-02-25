@@ -42,21 +42,15 @@ function normalizeVariant(v) {
 
 
 function restoreAttributeSelections() {
-    // Group variants by attributes to restore selection state
-    if (!ProductForm.variants.length) {
-        console.warn('⚠️ No variants to restore selections from');
-        return;
-    }
-    
-    console.log('🔄 Restoring attribute selections from variants:', ProductForm.variants);
-    console.log('📋 Available attributes:', ProductForm.attributes.length);
+if (!ProductForm.variants.length) {
+    return;
+}
     
     // Build selectedValues from existing variants
     const attributeValueMap = {};
     
     ProductForm.variants.forEach(variant => {
         const valueIds = variant.selectedAttributeValueIds || [];
-        console.log(`  Variant "${variant.combination}": has ${valueIds.length} attribute values`, valueIds);
         
         valueIds.forEach(valueId => {
             // Find which attribute this value belongs to
@@ -71,39 +65,25 @@ function restoreAttributeSelections() {
                         attributeValueMap[attrId] = new Set();
                     }
                     attributeValueMap[attrId].add(valueId);
-                    
-                    console.log(`    ✅ Found value "${foundValue.value || foundValue.Value}" in attribute "${attrName}"`);
-                    break; // Found, move to next valueId
+                    break;
                 }
             }
         });
     });
     
-    console.log('📋 Attribute value map:', attributeValueMap);
-    console.log('📋 Map has keys:', Object.keys(attributeValueMap));
-    
-    // ✅ CRITICAL: Set selections BEFORE adding rows
     Object.keys(attributeValueMap).forEach(attrId => {
         const values = Array.from(attributeValueMap[attrId]);
         ProductForm.selectedValues[attrId] = values;
-        console.log(`  ✅ Set selections for ${attrId}:`, values);
     });
     
-    console.log('✅ Selected values restored:', ProductForm.selectedValues);
-    console.log('✅ Selected values keys:', Object.keys(ProductForm.selectedValues));
     
-    // ✅ Add attribute rows AFTER selections are set
     Object.keys(attributeValueMap).forEach((attrId, index) => {
-        // Add row
         addAttributeRow(attrId);
         
-        // ✅ Force refresh the value buttons with correct selection state
-        // Need to wait for DOM to render
         setTimeout(() => {
             const rowIdx = ProductForm.rowIndex - Object.keys(attributeValueMap).length + index;
-            console.log(`🔄 Re-triggering selection display for row ${rowIdx}, attr ${attrId}`);
             onAttributeSelected(`attr-row-${rowIdx}`, attrId, rowIdx);
-        }, 200); // Tăng từ 100ms lên 200ms
+        }, 200);
     });
 }
 
@@ -115,46 +95,29 @@ function restoreAttributeSelections() {
 // ATTRIBUTES
 // ============================================
 function loadAttributes() {
-    if (ProductForm.isLoading) return;
+if (ProductForm.isLoading) return;
     
-    ProductForm.isLoading = true;
+ProductForm.isLoading = true;
     
-    console.log('🔄 Loading attributes...');
-    
-    $.ajax({
+$.ajax({
         url: '/Attributes/GetWithValues',
         type: 'GET',
         dataType: 'json',
         success: function(response) {
-            console.log('📦 Raw API response:', response);
-            console.log('📦 Response type:', typeof response);
-            
-            // jQuery already parsed JSON
             if (response && response.success && response.data) {
                 ProductForm.attributes = response.data;
-                console.log(`✅ Loaded ${ProductForm.attributes.length} attributes`);
             } else if (Array.isArray(response)) {
-                // Fallback if response is directly array
                 ProductForm.attributes = response;
-                console.log(`✅ Loaded ${ProductForm.attributes.length} attributes (direct array)`);
             } else {
-                console.error('❌ Unexpected response format:', response);
                 ProductForm.attributes = [];
             }
             
-            console.log('📋 Attributes:', ProductForm.attributes);
-            
-            // ✅ CRITICAL: Restore selections AFTER attributes are loaded
             if (ProductForm.isEditMode && window.initialVariants?.length) {
-                console.log('🔄 Edit mode detected, restoring selections NOW');
                 restoreAttributeSelections();
             }
         },
 
         error: function(xhr, status, error) {
-            console.error('❌ Failed to load attributes:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
             alert('Không thể tải thuộc tính! Vui lòng kiểm tra kết nối.');
             ProductForm.attributes = [];
         },
@@ -167,11 +130,8 @@ function loadAttributes() {
 
 
 function addAttributeRow(preselectedAttrId = null) {
-    console.log('➕ Adding attribute row, current attributes:', ProductForm.attributes.length);
-    
-    if (!ProductForm.attributes || !ProductForm.attributes.length) {
-        console.warn('⚠️ Attributes not loaded yet, waiting...');
-        alert('Vui lòng đợi tải danh sách thuộc tính!');
+if (!ProductForm.attributes || !ProductForm.attributes.length) {
+    alert('Vui lòng đợi tải danh sách thuộc tính!');
         
         // Retry after 1 second if attributes are being loaded
         if (!ProductForm.isLoading) {
@@ -243,9 +203,7 @@ function removeAttributeRow(rowId) {
 }
 
 function onAttributeSelected(rowId, attrId, rowIdx) {
-    console.log(`🎯 Attribute selected: rowId=${rowId}, attrId=${attrId}, rowIdx=${rowIdx}`);
-    
-    const container = $(`#values-container-${rowIdx}`);
+const container = $(`#values-container-${rowIdx}`);
     const selectedContainer = $(`#selected-values-${rowIdx}`);
     
     if (!attrId) {
@@ -256,11 +214,8 @@ function onAttributeSelected(rowId, attrId, rowIdx) {
 
     const attr = ProductForm.attributes.find(a => (a.id || a.Id) === attrId);
     if (!attr) {
-        console.warn(`⚠️ Attribute ${attrId} not found`);
         return;
     }
-
-    console.log(`📋 Attribute:`, attr.name || attr.Name);
 
     // Input for adding new values
     container.html(`
@@ -273,20 +228,13 @@ function onAttributeSelected(rowId, attrId, rowIdx) {
 
     const values = attr.values || attr.Values || [];
     if (values.length) {
-        // ✅ Get current selections for this attribute (if any)
         const selectedValueIds = ProductForm.selectedValues[attrId] || [];
-        
-        console.log(`  📌 Current selections for ${attrId}:`, selectedValueIds);
         
         const buttons = values.map(v => {
             const vId = v.id || v.Id;
             const vVal = v.value || v.Value;
             const isSelected = selectedValueIds.includes(vId);
             const selectedClass = isSelected ? 'bg-blue-600 text-white border-blue-600' : '';
-            
-            if (isSelected) {
-                console.log(`    ✅ Value ${vVal} (${vId}) is selected`);
-            }
             
             return `<button type="button" id="value-btn-${rowIdx}-${vId}"
                             class="px-4 py-2 border rounded-lg hover:bg-blue-50 ${selectedClass}"
@@ -307,24 +255,18 @@ function onAttributeSelected(rowId, attrId, rowIdx) {
 
 
 function toggleAttributeValue(attrId, valueId, valueName, rowIdx) {
-    console.log(`🔘 Toggle: attr=${attrId}, value=${valueId} (${valueName}), row=${rowIdx}`);
+$(`#value-btn-${rowIdx}-${valueId}`).toggleClass('bg-blue-600 text-white border-blue-600');
     
-    $(`#value-btn-${rowIdx}-${valueId}`).toggleClass('bg-blue-600 text-white border-blue-600');
+if (!ProductForm.selectedValues[attrId]) ProductForm.selectedValues[attrId] = [];
+const idx = ProductForm.selectedValues[attrId].indexOf(valueId);
     
-    if (!ProductForm.selectedValues[attrId]) ProductForm.selectedValues[attrId] = [];
-    const idx = ProductForm.selectedValues[attrId].indexOf(valueId);
+if (idx === -1) {
+    ProductForm.selectedValues[attrId].push(valueId);
+} else {
+    ProductForm.selectedValues[attrId].splice(idx, 1);
+}
     
-    if (idx === -1) {
-        ProductForm.selectedValues[attrId].push(valueId);
-        console.log(`  ✅ Selected ${valueName}, now have:`, ProductForm.selectedValues[attrId].length);
-    } else {
-        ProductForm.selectedValues[attrId].splice(idx, 1);
-        console.log(`  ❌ Deselected ${valueName}, now have:`, ProductForm.selectedValues[attrId].length);
-    }
-    
-    console.log(`📋 All selections:`, ProductForm.selectedValues);
-    
-    generateVariants();
+generateVariants();
 }
 
 
@@ -365,10 +307,6 @@ function generateVariants() {
     
     // Generate ALL possible combinations from selected values
     const combos = cartesianProduct(...keys.map(k => ProductForm.selectedValues[k]));
-    
-    console.log(`🔄 Generating ${combos.length} variant combinations...`);
-    
-    // ✅ Map to variants, preserving existing ones BY COMBINATION STRING
     const newVariants = combos.map(combo => {
         const ids = Array.isArray(combo) ? combo : [combo];
         const names = ids.map(vid => {
@@ -401,8 +339,6 @@ function generateVariants() {
             };
         }
         
-        // ✅ New variant - use basePrice
-        console.log(`  ➕ Creating new: ${combination}`);
         return {
             id: null,
             combination: combination,
@@ -413,10 +349,6 @@ function generateVariants() {
             isExisting: false
         };
     });
-    
-    const existingCount = newVariants.filter(v => v.isExisting || v.id).length;
-    const newCount = newVariants.length - existingCount;
-    console.log(`✅ Result: ${newVariants.length} total (${existingCount} existing + ${newCount} new)`);
     
     ProductForm.variants = newVariants;
     renderVariants();

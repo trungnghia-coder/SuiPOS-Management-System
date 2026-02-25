@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
 
@@ -32,7 +32,7 @@ namespace SuiPOS.Controllers
             var promotion = await _promotionService.GetByIdAsync(id);
             if (promotion == null)
             {
-                return Json(new { success = false, message = "Kh�ng t�m th?y khuy?n m�i" });
+                return Json(new { success = false, message = "Không tìm thấy khuyến mãi" });
             }
             return Json(new { success = true, data = promotion });
         }

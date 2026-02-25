@@ -222,7 +222,6 @@ if (totalPaid < finalAmount) {
     return;
 }
 
-    // ✅ Get staff ID from cookie and validate
     const getCookie = (name) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -230,39 +229,22 @@ if (totalPaid < finalAmount) {
         return null;
     };
     
-    // ✅ Debug: Log all cookies
-    console.log('🍪 All cookies:', document.cookie);
-    
     const staffIdString = getCookie('staff_id');
-    const staffName = getCookie('staff_name');
-    
-    console.log('🍪 staff_id cookie:', staffIdString);
-    console.log('🍪 staff_name cookie:', staffName);
-    
     let staffId = null;
     
-    // ✅ Validate if it's a valid GUID format
     const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     
     if (staffIdString && staffIdString !== 'null' && staffIdString !== 'undefined') {
         if (guidRegex.test(staffIdString)) {
             staffId = staffIdString;
-            console.log('✅ Valid Staff ID:', staffId);
-        } else {
-            console.error('❌ Invalid GUID format for staff_id:', staffIdString);
-            console.error('❌ Testing GUID regex on value:', staffIdString, 'Result:', guidRegex.test(staffIdString));
         }
-    } else {
-        console.warn('⚠️ No staff_id cookie found or invalid value:', staffIdString);
-        console.warn('⚠️ Please check if you are logged in');
     }
     
-    // Get order note from textarea
     const orderNote = document.getElementById('orderNote')?.value.trim() || null;
 
     const orderData = {
         customerId: customer ? customer.id : null,
-        staffId: staffId, // ✅ Send as Guid string or null
+        staffId: staffId,
         items: cartData.items,
         payments: payments.map(p => ({
             method: p.type,
@@ -274,13 +256,6 @@ if (totalPaid < finalAmount) {
         discountAmount: discountAmount,
         note: orderNote
     };
-
-    console.log('📦 Submitting Order Data:', orderData);
-    console.log('📦 StaffId:', { type: typeof staffId, value: staffId, isNull: staffId === null });
-
-
-
-
     try {
         const response = await fetch('/POS/Checkout', {
             method: 'POST',
@@ -313,10 +288,10 @@ if (totalPaid < finalAmount) {
             alert(result.message || 'Lỗi khi tạo đơn hàng!');
         }
     } catch (error) {
-        console.error('Error:', error);
         alert('Không thể kết nối với server!');
     }
 }
+
 
 document.querySelector('.submitOrder').addEventListener('click', function () {
     submitOrder();
@@ -325,7 +300,6 @@ document.querySelector('.submitOrder').addEventListener('click', function () {
 // Function to load order data, update invoice modal and print
 async function loadOrderAndPrint(orderId) {
     try {
-        // Load order data
         const orderResponse = await fetch(`/POS/GetOrderDetail?orderId=${orderId}`);
         const orderResult = await orderResponse.json();
 
@@ -335,21 +309,16 @@ async function loadOrderAndPrint(orderId) {
             return;
         }
 
-        // Load system settings for store info
         const settingsResponse = await fetch('/Settings/GetSettings');
         const settingsResult = await settingsResponse.json();
         
-        // Update invoice modal with real data
         await updateInvoiceModalWithData(orderResult.data, settingsResult.data || {});
         
-        // Show modal briefly then print
         openInvoicePreview();
         
-        // Wait a bit for modal to render, then print
         setTimeout(() => {
             printInvoice();
             
-            // Close modal and reload after printing
             setTimeout(() => {
                 closeInvoicePreview();
                 location.reload();
@@ -357,11 +326,12 @@ async function loadOrderAndPrint(orderId) {
         }, 500);
         
     } catch (error) {
-        console.error('Error loading order:', error);
         alert('Có lỗi khi tải hóa đơn!');
         location.reload();
     }
 }
+
+window.loadOrderAndPrint = loadOrderAndPrint;
 
 // Function to update invoice modal with real order and settings data
 function updateInvoiceModalWithData(orderData, settings) {
@@ -519,10 +489,10 @@ function updateInvoiceModalWithData(orderData, settings) {
                 fontSize: 10
             });
         } catch (e) {
-            console.error('Barcode generation failed:', e);
         }
     }
 }
+
 
 function getPaymentMethodName(method) {
     const methods = {
@@ -576,6 +546,8 @@ function printInvoice() {
                     .border-dashed { border-top: 1px dashed #999; }
                     .text-gray-600 { color: #666; }
                     .text-gray-500 { color: #888; }
+                    svg { display: block; margin: 0 auto; }
+
                 </style>
             </head>
             <body>
@@ -610,16 +582,13 @@ async function openInvoicePreviewWithOrder(orderId) {
             openInvoicePreview();
         }
     } catch (error) {
-        console.error('Error loading order:', error);
-        // Fallback: just show modal with default data
         openInvoicePreview();
     }
 }
 
 function updateInvoiceModal(orderData) {
-    // Deprecated - use updateInvoiceModalWithData instead
-    console.warn('updateInvoiceModal is deprecated, use updateInvoiceModalWithData');
 }
+
 
 
 

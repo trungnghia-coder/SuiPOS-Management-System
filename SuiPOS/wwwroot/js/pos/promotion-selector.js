@@ -28,11 +28,8 @@ function closePromotionSelector() {
 // Load valid promotions from API
 async function loadValidPromotions(orderAmount) {
     try {
-        console.log('📦 Loading promotions for order amount:', orderAmount);
         const response = await fetch(`/Promotions/GetValidPromotions?orderAmount=${orderAmount}`);
         const result = await response.json();
-        
-        console.log('📦 Promotions API response:', result);
         
         if (result.success && result.data && result.data.length > 0) {
             renderPromotions(result.data, orderAmount);
@@ -42,25 +39,10 @@ async function loadValidPromotions(orderAmount) {
                 <div class="text-center text-gray-500 py-8">
                     <i class="fas fa-gift text-4xl mb-2 text-gray-300"></i>
                     <p class="font-medium">Không có khuyến mãi nào khả dụng</p>
-                    <div class="mt-4 text-xs text-left bg-blue-50 p-4 rounded-lg">
-                        <p class="font-semibold text-blue-900 mb-2">💡 Gợi ý:</p>
-                        <ul class="space-y-1 text-blue-700">
-                            <li>• Tổng đơn hàng: <strong>${orderAmount.toLocaleString()}đ</strong></li>
-                            <li>• Hôm nay: <strong>${today}</strong></li>
-                            <li>• Kiểm tra các khuyến mãi có:</li>
-                            <li class="ml-4">- Đang hoạt động (IsActive = true)</li>
-                            <li class="ml-4">- Thời gian hợp lệ (StartDate ≤ hôm nay ≤ EndDate)</li>
-                            <li class="ml-4">- Đơn tối thiểu ≤ ${orderAmount.toLocaleString()}đ</li>
-                        </ul>
-                        <a href="/Promotions" class="mt-3 inline-block text-blue-600 hover:underline">
-                            → Quản lý khuyến mãi
-                        </a>
-                    </div>
                 </div>
             `;
         }
     } catch (error) {
-        console.error('❌ Error loading promotions:', error);
         document.getElementById('promotionsList').innerHTML = `
             <div class="text-center text-red-500 py-8">
                 <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
@@ -70,6 +52,7 @@ async function loadValidPromotions(orderAmount) {
         `;
     }
 }
+
 
 
 
@@ -191,15 +174,16 @@ function selectPromotion(id, name, code, type, value, maxDiscount) {
     const finalAmount = totalAmount - discount;
     document.getElementById('customerPay').textContent = finalAmount.toLocaleString() + 'đ';
     
-    // ✅ IMPORTANT: Reset payment methods to match new amount
+    // Reset payment methods to match new amount
     resetPaymentMethodsAfterDiscount(finalAmount);
     
     // Close modal
     closePromotionSelector();
 }
 
-// ✅ NEW: Reset payment methods when discount applied
+// Reset payment methods when discount applied
 function resetPaymentMethodsAfterDiscount(newTotalAmount) {
+
     // Clear existing payment methods
     if (typeof window.clearAllPaymentMethods === 'function') {
         window.clearAllPaymentMethods();
@@ -225,7 +209,7 @@ function removePromotion() {
     const totalAmount = cartData.totalAmount || 0;
     document.getElementById('customerPay').textContent = totalAmount.toLocaleString() + 'đ';
     
-    // ✅ Reset payment methods
+    // Reset payment methods
     resetPaymentMethodsAfterDiscount(totalAmount);
 }
 
@@ -251,7 +235,7 @@ function getCurrentDiscount() {
     return discount;
 }
 
-// ✅ Expose helper functions globally
+// Expose helper functions globally
 window.clearAllPaymentMethods = function() {
     if (typeof Payment !== 'undefined' && Payment.clear) {
         Payment.clear();

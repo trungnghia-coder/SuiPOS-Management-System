@@ -34,10 +34,10 @@ async function loadReport() {
         updateTopProducts(data.topSellingProducts);
         
     } catch (error) {
-        console.error('Error loading report:', error);
         alert('Lỗi khi tải báo cáo');
     }
 }
+
 
 // ========== UPDATE STATS CARDS ==========
 function updateStats(data) {
