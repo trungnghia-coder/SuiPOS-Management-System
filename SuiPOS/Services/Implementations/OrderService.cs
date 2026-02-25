@@ -29,68 +29,33 @@ namespace SuiPOS.Services.Implementations
                 var totalItemsPrice = model.Items.Sum(x => x.Quantity * x.UnitPrice);
                 var finalAmount = totalItemsPrice - (model.DiscountAmount ?? 0);
 
-                // Generate unique order code
-                var orderCode = "ORD" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-
-                var order = new Order
+                // Validate payment amount
+                var validationResult = ValidatePaymentAmount(model.CustomerId, model.AmountReceived, finalAmount);
+                if (!validationResult.IsValid)
                 {
-                    Id = Guid.NewGuid(),
-                    OrderCode = orderCode,
-                    CustomerId = model.CustomerId,
-                    StaffId = model.StaffId,
-                    TotalAmount = totalItemsPrice,
-                    OrderDate = DateTime.UtcNow,
-                    Note = model.Note,
-                    Status = "Completed",
-                    AmountReceived = model.AmountReceived,
-                    ChangeAmount = model.AmountReceived - finalAmount,
-                    Discount = model.DiscountAmount ?? 0
-                };
+                    return (false, validationResult.ErrorMessage!, null);
+                }
+
+                var orderCode = GenerateOrderCode();
+                var order = CreateOrderEntity(model, orderCode, totalItemsPrice, finalAmount);
 
                 _context.Orders.Add(order);
 
-                foreach (var item in model.Items)
+                // Process order items and update stock
+                var stockUpdateResult = await ProcessOrderItemsAsync(order, model.Items);
+                if (!stockUpdateResult.Success)
                 {
-                    var variant = await _context.ProductVariants.FindAsync(item.VariantId);
-                    if (variant == null)
-                    {
-                        await transaction.RollbackAsync();
-                        return (false, $"Sản phẩm không tồn tại", null);
-                    }
-
-                    if (variant.Stock < item.Quantity)
-                    {
-                        await transaction.RollbackAsync();
-                        return (false, $"Không đủ tồn kho cho {variant.SKU}", null);
-                    }
-
-                    order.OrderDetails.Add(new OrderDetail
-                    {
-                        Id = Guid.NewGuid(),
-                        OrderId = order.Id,
-                        ProductVariantId = item.VariantId,
-                        Quantity = item.Quantity,
-                        UnitPrice = item.UnitPrice
-                    });
-
-                    variant.Stock -= item.Quantity;
-                    _context.ProductVariants.Update(variant);
+                    await transaction.RollbackAsync();
+                    return (false, stockUpdateResult.Message, null);
                 }
 
-                if (model.Payments != null)
+                // Add payments
+                AddPaymentsToOrder(order, model.Payments);
+
+                // Update customer data (SpentTotal and Debt)
+                if (model.CustomerId.HasValue)
                 {
-                    foreach (var payment in model.Payments)
-                    {
-                        order.Payments.Add(new Payment
-                        {
-                            Id = Guid.NewGuid(),
-                            OrderId = order.Id,
-                            PaymentMethod = payment.Method,
-                            Amount = payment.Amount,
-                            TransactionReference = payment.Reference,
-                            PaymentDate = DateTime.UtcNow
-                        });
-                    }
+                    await UpdateCustomerFinancialDataAsync(model.CustomerId.Value, finalAmount, model.AmountReceived);
                 }
 
                 await _context.SaveChangesAsync();
@@ -104,6 +69,119 @@ namespace SuiPOS.Services.Implementations
                 return (false, $"Lỗi: {ex.Message}", null);
             }
         }
+
+        private (bool IsValid, string? ErrorMessage) ValidatePaymentAmount(Guid? customerId, decimal amountReceived, decimal finalAmount)
+        {
+            var isGuestCustomer = !customerId.HasValue;
+            var hasUnpaidAmount = amountReceived < finalAmount;
+
+            if (isGuestCustomer && hasUnpaidAmount)
+            {
+                var shortage = finalAmount - amountReceived;
+                return (false, $"Khách lẻ phải thanh toán đủ! Còn thiếu: {shortage:N0}đ");
+            }
+
+            return (true, null);
+        }
+
+        private string GenerateOrderCode()
+        {
+            return "ORD" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        }
+
+        private Order CreateOrderEntity(OrderViewModel model, string orderCode, decimal totalItemsPrice, decimal finalAmount)
+        {
+            var debt = Math.Max(0, finalAmount - model.AmountReceived);
+
+            return new Order
+            {
+                Id = Guid.NewGuid(),
+                OrderCode = orderCode,
+                CustomerId = model.CustomerId,
+                StaffId = model.StaffId,
+                TotalAmount = totalItemsPrice,
+                OrderDate = DateTime.UtcNow,
+                Note = model.Note,
+                Status = "Completed",
+                AmountReceived = model.AmountReceived,
+                ChangeAmount = Math.Max(0, model.AmountReceived - finalAmount),
+                Discount = model.DiscountAmount ?? 0
+            };
+        }
+
+
+        private async Task<(bool Success, string Message)> ProcessOrderItemsAsync(Order order, List<CartItemViewModel> items)
+
+        {
+            foreach (var item in items)
+            {
+                var variant = await _context.ProductVariants.FindAsync(item.VariantId);
+
+                if (variant == null)
+                {
+                    return (false, $"Sản phẩm không tồn tại");
+                }
+
+                if (variant.Stock < item.Quantity)
+                {
+                    return (false, $"Không đủ tồn kho cho {variant.SKU}");
+                }
+
+                order.OrderDetails.Add(new OrderDetail
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    ProductVariantId = item.VariantId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
+                });
+
+                variant.Stock -= item.Quantity;
+                _context.ProductVariants.Update(variant);
+            }
+
+            return (true, string.Empty);
+        }
+
+        private void AddPaymentsToOrder(Order order, List<PaymentViewModel>? payments)
+        {
+            if (payments == null || !payments.Any())
+            {
+                return;
+            }
+
+            foreach (var payment in payments)
+            {
+                order.Payments.Add(new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    PaymentMethod = payment.Method,
+                    Amount = payment.Amount,
+                    TransactionReference = payment.Reference,
+                    PaymentDate = DateTime.UtcNow
+                });
+            }
+        }
+
+        private async Task UpdateCustomerFinancialDataAsync(Guid customerId, decimal finalAmount, decimal amountReceived)
+        {
+            var customer = await _context.Customers.FindAsync(customerId);
+
+            if (customer == null)
+            {
+                return;
+            }
+
+            var orderDebt = Math.Max(0, finalAmount - amountReceived);
+
+            customer.TotalSpent += finalAmount;
+            customer.DebtAmount += orderDebt;
+
+            _context.Customers.Update(customer);
+        }
+
+
 
         public async Task<OrderDetailVM?> GetOrderByIdAsync(Guid id)
         {
@@ -277,7 +355,7 @@ namespace SuiPOS.Services.Implementations
         public async Task<ValidateStockResult> ValidateStockForReorderAsync(List<(Guid VariantId, int Quantity)> items)
         {
             var result = new ValidateStockResult { Success = true };
-            
+
             try
             {
                 foreach (var item in items)

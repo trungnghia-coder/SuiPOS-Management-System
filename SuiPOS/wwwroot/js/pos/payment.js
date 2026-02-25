@@ -211,16 +211,20 @@ if (!payments.length || payments.every(p => p.amount === 0)) {
     return;
 }
 
-// ✅ Validate: Khách phải đưa đủ tiền
 const discountAmount = getCurrentDiscount ? getCurrentDiscount() : 0;
 const finalAmount = cartData.totalAmount - discountAmount;
 const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    
-if (totalPaid < finalAmount) {
+
+// Validate: Chỉ khách lẻ mới bắt buộc trả đủ tiền
+const isGuestCustomer = !customer || !customer.id;
+const hasUnpaidAmount = totalPaid < finalAmount;
+
+if (isGuestCustomer && hasUnpaidAmount) {
     const shortage = finalAmount - totalPaid;
-    alert(`Khách chưa đưa đủ tiền!\nCòn thiếu: ${shortage.toLocaleString()}đ`);
+    alert(`Khách lẻ phải thanh toán đủ!\nCòn thiếu: ${shortage.toLocaleString()}đ`);
     return;
 }
+
 
     const getCookie = (name) => {
         const value = `; ${document.cookie}`;
