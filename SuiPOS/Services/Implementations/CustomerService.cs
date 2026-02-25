@@ -68,7 +68,8 @@ namespace SuiPOS.Services.Implementations
             {
                 Id = customer.Id,
                 Name = customer.Name,
-                PhoneNumber = customer.Phone ?? string.Empty
+                PhoneNumber = customer.Phone ?? string.Empty,
+                DebtAmount = customer.DebtAmount
             };
         }
 
@@ -79,6 +80,8 @@ namespace SuiPOS.Services.Implementations
 
             customer.Name = model.Name;
             customer.Phone = model.PhoneNumber;
+            customer.DebtAmount = model.DebtAmount;
+            customer.TotalSpent = model.TotalSpent;
 
             _context.Customers.Update(customer);
 

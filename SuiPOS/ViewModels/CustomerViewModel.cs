@@ -15,5 +15,12 @@ namespace SuiPOS.ViewModels
         [RegularExpression(@"^(0|84)(3|5|7|8|9)([0-9]{8})$", ErrorMessage = "Số điện thoại không đúng định dạng Việt Nam")]
         [Display(Name = "Số điện thoại")]
         public string PhoneNumber { get; set; }
+
+        [Display(Name = "Nợ hiện tại")]
+        public decimal DebtAmount { get; set; } = 0;
+
+        [Display(Name = "Tổng chi tiêu")]
+        public decimal TotalSpent { get; set; } = 0;
     }
+
 }
