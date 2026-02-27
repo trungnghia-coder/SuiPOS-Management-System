@@ -78,6 +78,27 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
+// Seed database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<SuiPosDbContext>();
+
+        // Check if force reseed is enabled
+        var forceReseed = Environment.GetEnvironmentVariable("FORCE_RESEED") == "true";
+
+        await SuiPOS.Data.Seed.DatabaseSeeder.SeedAsync(context, forceReseed);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
+
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
