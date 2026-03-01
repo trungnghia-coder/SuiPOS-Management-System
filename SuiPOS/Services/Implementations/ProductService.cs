@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using SuiPOS.Data;
 using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
@@ -49,15 +50,15 @@ namespace SuiPOS.Services.Implementations
                             Stock = v.Stock,
                             VariantCombination = v.Combination ?? ""
                         };
-                        
-                        // ✅ CRITICAL: Save SelectedAttributeValueIds to SelectedValues
+
+                        // CRITICAL: Save SelectedAttributeValueIds to SelectedValues
                         if (v.SelectedAttributeValueIds != null && v.SelectedAttributeValueIds.Any())
                         {
                             variant.SelectedValues = await _context.AttributeValues
                                 .Where(av => v.SelectedAttributeValueIds.Contains(av.Id))
                                 .ToListAsync();
                         }
-                        
+
                         _context.ProductVariants.Add(variant);
                     }
                 }
@@ -90,10 +91,16 @@ namespace SuiPOS.Services.Implementations
             return (true, "Xóa thành công.");
         }
 
-        public async Task<List<ProductVM>> GetAllAsync()
+        public async Task<List<ProductVM>> GetAllAsync(int pageNumber, int pageSize)
         {
+            int actualPage = pageNumber > 0 ? pageNumber : 1;
+            int actualSize = pageSize > 0 ? pageSize : 50;
+
+            var pPageNumber = new SqlParameter("@PageNumber", actualPage);
+            var pPageSize = new SqlParameter("@PageSize", actualSize);
+
             return await _context.Database
-                .SqlQueryRaw<ProductVM>("EXEC GetProductList")
+                .SqlQueryRaw<ProductVM>("EXEC GetProductList @PageNumber, @PageSize", pPageNumber, pPageSize)
                 .ToListAsync();
         }
 
@@ -101,7 +108,7 @@ namespace SuiPOS.Services.Implementations
         {
             return await _context.Products
                 .Include(p => p.Variants)
-                    .ThenInclude(v => v.SelectedValues) // ✅ Include SelectedValues for variants
+                    .ThenInclude(v => v.SelectedValues)
                 .Include(p => p.Category)
                 .Where(p => p.Id == id)
                 .Select(p => new ProductVM
@@ -119,7 +126,6 @@ namespace SuiPOS.Services.Implementations
                         Price = v.Price,
                         Stock = v.Stock,
                         Combination = v.VariantCombination,
-                        // ✅ Include SelectedValues so Controller can extract IDs
                         SelectedValues = v.SelectedValues.Select(sv => new AttributeValueVM
                         {
                             Id = sv.Id,
@@ -169,7 +175,7 @@ namespace SuiPOS.Services.Implementations
                         {
                             existingVariant.VariantCombination = vModel.Combination;
                         }
-                        
+
                         // ✅ Update SelectedValues for existing variant
                         if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
                         {
@@ -191,7 +197,7 @@ namespace SuiPOS.Services.Implementations
                             Stock = vModel.Stock,
                             VariantCombination = vModel.Combination ?? ""
                         };
-                        
+
                         // ✅ Set SelectedValues for new variant
                         if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
                         {
@@ -199,7 +205,7 @@ namespace SuiPOS.Services.Implementations
                                 .Where(av => vModel.SelectedAttributeValueIds.Contains(av.Id))
                                 .ToListAsync();
                         }
-                        
+
                         _context.ProductVariants.Add(newVariant);
                     }
                 }

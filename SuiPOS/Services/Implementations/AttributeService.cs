@@ -77,12 +77,12 @@ namespace SuiPOS.Services.Implementations
                 if (await _context.ProductAttributes.AnyAsync(a => a.Name == name))
                     return (false, "Thuộc tính này đã tồn tại");
 
-                var attribute = new ProductAttribute 
-                { 
-                    Id = Guid.NewGuid(), 
-                    Name = name 
+                var attribute = new ProductAttribute
+                {
+                    Id = Guid.NewGuid(),
+                    Name = name
                 };
-                
+
                 _context.ProductAttributes.Add(attribute);
                 await _context.SaveChangesAsync();
 

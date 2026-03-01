@@ -14,7 +14,7 @@ namespace SuiPOS.ViewModels
         public int Available { get; set; }
         public int Inventory { get; set; }
         public bool isActive { get; set; }
-        public int Orders { get; set; }
+        public int TotalRecords { get; set; }
         [NotMapped]
         public List<VariantDisplayVM>? Variants { get; set; } = new();
     }
@@ -55,7 +55,7 @@ namespace SuiPOS.ViewModels
     {
         // ✅ Add Id to track existing variants during Edit
         public Guid? Id { get; set; }
-        
+
         [Required(ErrorMessage = "SKU is required")]
         [StringLength(50, ErrorMessage = "SKU cannot exceed 50 characters")]
         [RegularExpression(@"^[A-Za-z0-9-_]+$", ErrorMessage = "SKU can only contain letters, numbers, hyphens and underscores")]

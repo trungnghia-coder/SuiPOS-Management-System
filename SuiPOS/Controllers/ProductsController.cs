@@ -16,9 +16,13 @@ namespace SuiPOS.Controllers
             _categoryService = categoryService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1, int size = 50)
         {
-            var products = await _productService.GetAllAsync();
+            var products = await _productService.GetAllAsync(page, size);
+
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = size;
+
             return View(products);
         }
 

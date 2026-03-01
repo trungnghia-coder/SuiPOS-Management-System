@@ -17,7 +17,7 @@ namespace SuiPOS.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var products = await _productService.GetAllAsync();
+            var products = await _productService.GetAllAsync(1, 1000);
             return View(products);
         }
 

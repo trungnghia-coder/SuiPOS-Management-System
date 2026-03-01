@@ -4,7 +4,7 @@ namespace SuiPOS.Services.Interfaces
 {
     public interface IProductService
     {
-        Task<List<ProductVM>> GetAllAsync();
+        Task<List<ProductVM>> GetAllAsync(int pageNumber, int pageSize);
         Task<ProductVM?> GetByIdAsync(Guid id);
         Task<(bool Success, string Message)> CreateAsync(ProductInputVM model);
         Task<(bool Success, string Message)> UpdateAsync(Guid id, ProductInputVM model);
