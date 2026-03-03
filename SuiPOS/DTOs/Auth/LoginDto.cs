@@ -1,14 +1,14 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SuiPOS.DTOs.Auth
 {
     public class LoginDto
     {
-        [Required(ErrorMessage = "T�n ??ng nh?p kh�ng ???c ?? tr?ng")]
+        [Required(ErrorMessage = "Tên đăng nhập không được trống")]
         [StringLength(50)]
         public string Username { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "M?t kh?u kh�ng ???c ?? tr?ng")]
+        [Required(ErrorMessage = "Mật khẩu không được trống")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 

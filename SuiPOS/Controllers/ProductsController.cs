@@ -49,7 +49,6 @@ namespace SuiPOS.Controllers
                 Name = product.ProductName,
                 CategoryId = product.CategoryId,
                 ExistingImageUrl = product.ImageUrl,
-                // ✅ Map variants with SelectedAttributeValueIds from SelectedValues
                 Variants = product.Variants?.Select(v => new VariantInputVM
                 {
                     Id = v.Id,
@@ -57,7 +56,6 @@ namespace SuiPOS.Controllers
                     Price = v.Price,
                     Stock = v.Stock,
                     Combination = v.Combination,
-                    // ✅ CRITICAL: Extract IDs from SelectedValues
                     SelectedAttributeValueIds = v.SelectedValues?.Select(sv => sv.Id).ToList() ?? new List<Guid>()
                 }).ToList() ?? new List<VariantInputVM>()
             };

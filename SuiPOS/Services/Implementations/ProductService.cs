@@ -1,9 +1,9 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Dapper;
 using Microsoft.EntityFrameworkCore;
 using SuiPOS.Data;
-using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
@@ -20,7 +20,6 @@ namespace SuiPOS.Services.Implementations
 
         public async Task<(bool Success, string Message)> CreateAsync(ProductInputVM model)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 string? uploadedUrl = null;
@@ -29,50 +28,28 @@ namespace SuiPOS.Services.Implementations
                     uploadedUrl = await _fileService.UploadImageAsync(model.ImageFile);
                 }
 
-                var product = new Product
-                {
-                    Id = Guid.NewGuid(),
-                    Name = model.Name,
-                    CategoryId = model.CategoryId,
-                    ImageUrl = uploadedUrl
-                };
+                var variantDataTable = ToVariantDataTable(model.Variants);
 
-                if (model.Variants != null && model.Variants.Any())
-                {
-                    foreach (var v in model.Variants)
-                    {
-                        var variant = new ProductVariant
-                        {
-                            Id = Guid.NewGuid(),
-                            ProductId = product.Id,
-                            SKU = v.SKU,
-                            Price = v.Price,
-                            Stock = v.Stock,
-                            VariantCombination = v.Combination ?? ""
-                        };
+                var connection = _context.Database.GetDbConnection();
 
-                        // CRITICAL: Save SelectedAttributeValueIds to SelectedValues
-                        if (v.SelectedAttributeValueIds != null && v.SelectedAttributeValueIds.Any())
-                        {
-                            variant.SelectedValues = await _context.AttributeValues
-                                .Where(av => v.SelectedAttributeValueIds.Contains(av.Id))
-                                .ToListAsync();
-                        }
+                var parameters = new DynamicParameters();
+                parameters.Add("@Id", Guid.NewGuid());
+                parameters.Add("@Name", model.Name);
+                parameters.Add("@CategoryId", model.CategoryId);
+                parameters.Add("@ImageUrl", uploadedUrl);
 
-                        _context.ProductVariants.Add(variant);
-                    }
-                }
+                parameters.Add("@Variants", variantDataTable.AsTableValuedParameter("dbo.VariantType"));
 
+                await connection.ExecuteAsync(
+                    "sp_CreateProduct",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-                return (true, "Sản phẩm và các phiên bản đã được thêm thành công.");
+                return (true, "Thêm sản phẩm thành công");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 var innerMessage = ex.InnerException?.Message ?? ex.Message;
                 return (false, $"Lỗi hệ thống: {innerMessage}");
             }
@@ -96,130 +73,124 @@ namespace SuiPOS.Services.Implementations
             int actualPage = pageNumber > 0 ? pageNumber : 1;
             int actualSize = pageSize > 0 ? pageSize : 50;
 
-            var pPageNumber = new SqlParameter("@PageNumber", actualPage);
-            var pPageSize = new SqlParameter("@PageSize", actualSize);
+            var connection = _context.Database.GetDbConnection();
 
-            return await _context.Database
-                .SqlQueryRaw<ProductVM>("EXEC GetProductList @PageNumber, @PageSize", pPageNumber, pPageSize)
-                .ToListAsync();
+            var result = await connection.QueryAsync<ProductVM>(
+                "GetProductList",
+                new { PageNumber = actualPage, PageSize = actualSize },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
         }
 
         public async Task<ProductVM?> GetByIdAsync(Guid id)
         {
-            return await _context.Products
-                .Include(p => p.Variants)
-                    .ThenInclude(v => v.SelectedValues)
-                .Include(p => p.Category)
-                .Where(p => p.Id == id)
-                .Select(p => new ProductVM
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+
+                using var multi = await connection.QueryMultipleAsync(
+                    "sp_GetProductById",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                var product = await multi.ReadFirstOrDefaultAsync<ProductVM>();
+
+                if (product != null)
                 {
-                    Id = p.Id,
-                    ProductName = p.Name,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category != null ? p.Category.Name : "",
-                    ImageUrl = p.ImageUrl,
-                    isActive = p.isActive,
-                    Variants = p.Variants.Select(v => new VariantDisplayVM
+                    var variantsData = await multi.ReadAsync<dynamic>();
+
+                    product.Variants = variantsData.Select(v => new VariantDisplayVM
                     {
                         Id = v.Id,
                         SKU = v.SKU,
                         Price = v.Price,
                         Stock = v.Stock,
-                        Combination = v.VariantCombination,
-                        SelectedValues = v.SelectedValues.Select(sv => new AttributeValueVM
-                        {
-                            Id = sv.Id,
-                            Value = sv.Value
-                        }).ToList()
-                    }).ToList()
-                })
-                .FirstOrDefaultAsync();
-        }
+                        Combination = v.Combination,
+                        SelectedValues = v.SelectedValuesJson != null
+                            ? Newtonsoft.Json.JsonConvert.DeserializeObject<List<AttributeValueVM>>((string)v.SelectedValuesJson)
+                            : new List<AttributeValueVM>()
+                    }).ToList();
+                }
 
+                return product;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
 
         public async Task<(bool Success, string Message)> UpdateAsync(Guid id, ProductInputVM model)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var product = await _context.Products
-                    .Include(p => p.Variants)
-                    .FirstOrDefaultAsync(p => p.Id == id);
+                var currentImageUrl = await _context.Products
+                    .Where(p => p.Id == id)
+                    .Select(p => p.ImageUrl)
+                    .FirstOrDefaultAsync();
 
-                if (product == null) return (false, "Sản phẩm không tồn tại.");
+                if (currentImageUrl == null) return (false, "Sản phẩm không tồn tại.");
 
+                string? newImageUrl = null;
                 if (model.ImageFile != null)
                 {
-                    if (!string.IsNullOrEmpty(product.ImageUrl))
-                        await _fileService.DeleteImageAsync(product.ImageUrl);
-                    product.ImageUrl = await _fileService.UploadImageAsync(model.ImageFile);
+                    if (!string.IsNullOrEmpty(currentImageUrl))
+                        await _fileService.DeleteImageAsync(currentImageUrl);
+
+                    newImageUrl = await _fileService.UploadImageAsync(model.ImageFile);
                 }
 
-                product.Name = model.Name;
-                product.CategoryId = model.CategoryId;
+                var variantTable = ToVariantDataTable(model.Variants);
 
-                var updatedSkuList = model.Variants.Select(v => v.SKU).ToList();
-                var variantsToRemove = product.Variants
-                    .Where(v => !updatedSkuList.Contains(v.SKU)).ToList();
-                _context.ProductVariants.RemoveRange(variantsToRemove);
+                var connection = _context.Database.GetDbConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@Id", id);
+                parameters.Add("@Name", model.Name);
+                parameters.Add("@CategoryId", model.CategoryId);
+                parameters.Add("@ImageUrl", newImageUrl);
+                parameters.Add("@Variants", variantTable.AsTableValuedParameter("dbo.VariantType"));
 
-                foreach (var vModel in model.Variants)
-                {
-                    var existingVariant = product.Variants.FirstOrDefault(v => v.SKU == vModel.SKU);
-                    if (existingVariant != null)
-                    {
-                        existingVariant.Price = vModel.Price;
-                        existingVariant.Stock = vModel.Stock;
+                await connection.ExecuteAsync("sp_UpdateProduct", parameters, commandType: CommandType.StoredProcedure);
 
-                        if (!string.IsNullOrWhiteSpace(vModel.Combination))
-                        {
-                            existingVariant.VariantCombination = vModel.Combination;
-                        }
-
-                        // ✅ Update SelectedValues for existing variant
-                        if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
-                        {
-                            // Clear existing and reload
-                            existingVariant.SelectedValues.Clear();
-                            existingVariant.SelectedValues = await _context.AttributeValues
-                                .Where(av => vModel.SelectedAttributeValueIds.Contains(av.Id))
-                                .ToListAsync();
-                        }
-                    }
-                    else
-                    {
-                        var newVariant = new ProductVariant
-                        {
-                            Id = Guid.NewGuid(),
-                            ProductId = product.Id,
-                            SKU = vModel.SKU,
-                            Price = vModel.Price,
-                            Stock = vModel.Stock,
-                            VariantCombination = vModel.Combination ?? ""
-                        };
-
-                        // ✅ Set SelectedValues for new variant
-                        if (vModel.SelectedAttributeValueIds != null && vModel.SelectedAttributeValueIds.Any())
-                        {
-                            newVariant.SelectedValues = await _context.AttributeValues
-                                .Where(av => vModel.SelectedAttributeValueIds.Contains(av.Id))
-                                .ToListAsync();
-                        }
-
-                        _context.ProductVariants.Add(newVariant);
-                    }
-                }
-
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return (true, "Cập nhật thành công.");
+                return (true, "Cập nhật sản phẩm thành công!");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                return (false, $"Lỗi: {ex.Message}");
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                return (false, $"Lỗi cập nhật: {msg}");
             }
+        }
+
+        private DataTable ToVariantDataTable(List<VariantInputVM> variants)
+        {
+            var table = new DataTable();
+            table.Columns.Add("SKU", typeof(string));
+            table.Columns.Add("Price", typeof(decimal));
+            table.Columns.Add("Stock", typeof(int));
+            table.Columns.Add("Combination", typeof(string));
+            table.Columns.Add("AttributeValueIds", typeof(string));
+
+            if (variants != null)
+            {
+                foreach (var v in variants)
+                {
+                    string attrIds = v.SelectedAttributeValueIds != null
+                        ? string.Join(",", v.SelectedAttributeValueIds)
+                        : string.Empty;
+
+                    table.Rows.Add(
+                        v.SKU,
+                        v.Price,
+                        v.Stock,
+                        v.Combination ?? string.Empty,
+                        attrIds
+                    );
+                }
+            }
+            return table;
         }
     }
 }

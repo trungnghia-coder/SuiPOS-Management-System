@@ -61,7 +61,6 @@ namespace SuiPOS.Controllers
 
             TempData["SuccessMessage"] = $"Chào mừng {staff.FullName}!";
             return RedirectToAction("Index", "POS");
-
         }
 
         // GET: /Auth/Register
