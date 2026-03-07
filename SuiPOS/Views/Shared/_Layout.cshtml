@@ -48,11 +48,8 @@
     <!-- Invoice Preview Modal Component -->
     @await Component.InvokeAsync("InvoicePreviewModal")
 
-    <!-- Auth Interceptor - Auto Refresh Token -->
+    <!-- Auth Interceptor - Auto Refresh Token + User Menu -->
     <script src="~/js/auth-interceptor.js"></script>
-    
-    <!-- User Menu Script -->
-    <script src="~/js/user-menu.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

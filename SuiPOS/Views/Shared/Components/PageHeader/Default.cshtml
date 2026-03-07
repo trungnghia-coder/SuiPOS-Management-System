@@ -41,27 +41,20 @@
             <div class="relative">
                 <button id="userMenuBtn" class="flex items-center gap-2 hover:bg-gray-100 rounded-lg p-2">
                     <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        @{
-                            var staffName = Context.Request.Cookies["staff_name"] ?? "User";
-                            var staffRole = Context.Request.Cookies["staff_role"] ?? "Staff";
-
-                            var initials = string.Join("", staffName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(n => n.FirstOrDefault()));
-                        }
-                        @initials.ToUpper()
+                        <span id="userInitials"></span>
                     </div>
                     <div class="text-left hidden md:block">
-                        <p class="text-sm font-medium text-gray-700">@staffName</p>
-                        <p class="text-xs text-gray-500">@staffRole</p>
+                        <p id="userName" class="text-sm font-medium text-gray-700">User</p>
+                        <p id="userRole" class="text-xs text-gray-500">Staff</p>
                     </div>
                     <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                 </button>
-                
+
                 <!-- Dropdown Menu -->
                 <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div class="p-3 border-b border-gray-200">
-                        <p class="text-sm font-medium text-gray-700">@staffName</p>
-                        <p class="text-xs text-gray-500">@staffRole</p>
+                        <p id="dropdown-auth-name" class="text-sm font-medium text-gray-700"></p>
+                        <p id="dropdown-auth-role" class="text-xs text-gray-500"></p>
                     </div>
                     <div class="py-2">
                         <a href="#" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-gray-700">

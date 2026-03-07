@@ -141,11 +141,7 @@
                 
                 <div class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg">
                     <i class="fas fa-user text-gray-600"></i>
-                    @{
-                        var sellerName = Context.Request.Cookies["staff_name"] ?? "Guest";
-                        var staffId = Context.Request.Cookies["staff_id"] ?? "";
-                    }
-                    <span class="text-sm font-medium">@sellerName</span>
+                    <span id="posStaffName" class="text-sm font-medium">Guest</span>
                 </div>
             </div>
 

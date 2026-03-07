@@ -8,11 +8,9 @@ const AuthInterceptor = {
 
     async refreshAccessToken() {
         try {
-            const response = await fetch('/Auth/RefreshToken', {
+            const response = await originalFetch('/Auth/RefreshToken', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
 
@@ -25,7 +23,6 @@ const AuthInterceptor = {
             return false;
         }
     },
-
 
     async handleUnauthorized() {
         if (this.isRefreshing) {
@@ -48,57 +45,117 @@ const AuthInterceptor = {
             window.location.href = '/Auth/Login';
             return false;
         }
-    }
+    },
 
+    getStaffData() {
+        const name = "staff_data=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i].trim();
+            if (c.indexOf(name) == 0) {
+                try {
+                    return JSON.parse(c.substring(name.length, c.length));
+                } catch (e) { return null; }
+            }
+        }
+        return null;
+    },
+
+    renderStaffUI() {
+        const staff = this.getStaffData();
+        console.log('Staff Data:', staff); 
+
+        if (!staff) {
+            console.warn('No staff data found in cookie');
+            return;
+        }
+
+        const initials = staff.name.split(' ').filter(n => n).map(n => n[0]).join('').toUpperCase();
+        console.log('Initials:', initials); 
+
+        const elements = {
+            'userInitials': initials,
+            'userName': staff.name,
+            'userRole': staff.role,
+            'dropdown-auth-name': staff.name,
+            'dropdown-auth-role': staff.role,
+            'posStaffName': staff.name
+        };
+
+        for (const [id, value] of Object.entries(elements)) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value;
+                console.log(`Updated #${id}:`, value);
+            } else {
+                console.warn(`Element #${id} not found`);
+            }
+        }
+
+        if (staff.role !== 'Admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.remove());
+        }
+    },
+
+    setupDropdownToggle() {
+        const btn = document.getElementById('userMenuBtn');
+        const dropdown = document.getElementById('userMenuDropdown');
+
+        if (!btn || !dropdown) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
 };
 
-// Override fetch globally
 const originalFetch = window.fetch;
-window.fetch = async function(...args) {
+window.fetch = async function (...args) {
     let response = await originalFetch(...args);
 
-    // If 401 Unauthorized and not already a refresh request
-    if (response.status === 401 && !args[0].includes('/Auth/RefreshToken')) {
+    const isRefreshRequest = args[0].includes('/Auth/RefreshToken') || args[0].includes('/Auth/CheckToken');
+
+    if (response.status === 401 && !isRefreshRequest) {
         const refreshed = await AuthInterceptor.handleUnauthorized();
-        
+
         if (refreshed) {
-            response = await originalFetch(...args);
+            return await originalFetch(...args);
         }
     }
-
 
     return response;
 };
 
-// ? Check token every 2 minutes (more frequent)
 let tokenCheckInterval;
-
 function startTokenCheck() {
-    // Clear existing interval if any
-    if (tokenCheckInterval) {
-        clearInterval(tokenCheckInterval);
-    }
-    
+    if (tokenCheckInterval) clearInterval(tokenCheckInterval);
+
     tokenCheckInterval = setInterval(async () => {
         try {
-            const response = await fetch('/Auth/CheckToken', {
-                credentials: 'include'
-            });
-            
-            if (!response.ok) {
-                await AuthInterceptor.refreshAccessToken();
-            }
+            await fetch('/Auth/CheckToken', { credentials: 'include' });
         } catch (error) {
         }
-    }, 2 * 60 * 1000);
+    }, 5 * 60 * 1000); 
 }
 
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startTokenCheck);
-} else {
+function initAuth() {
+    AuthInterceptor.renderStaffUI();
+    AuthInterceptor.setupDropdownToggle();
     startTokenCheck();
 }
 
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+    initAuth();
+}
 
 
