@@ -22,7 +22,7 @@ namespace SuiPOS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CustomerViewModel model)
+        public async Task<IActionResult> Create([FromBody] CustomerViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -44,7 +44,7 @@ namespace SuiPOS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Update(Guid id, CustomerViewModel model)
+        public async Task<IActionResult> Update(Guid id, [FromBody] CustomerViewModel model)
         {
             if (!ModelState.IsValid) return Json(new { success = false, message = "Thông tin không hợp lệ." });
 
@@ -56,12 +56,13 @@ namespace SuiPOS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var success = await _customerService.DeleteAsync(id);
-            if (success)
+            var (success, message) = await _customerService.DeleteAsync(id);
+
+            return Json(new
             {
-                return Json(new { success = true, message = "Đã xóa khách hàng thành công." });
-            }
-            return Json(new { success = false, message = "Không thể xóa khách hàng này." });
+                success = success,
+                message = message
+            });
         }
 
         [HttpGet]
@@ -73,7 +74,7 @@ namespace SuiPOS.Controllers
             }
 
             var customers = await _customerService.SearchAsync(query);
-            
+
             var results = customers.Select(c => new
             {
                 id = c.Id,

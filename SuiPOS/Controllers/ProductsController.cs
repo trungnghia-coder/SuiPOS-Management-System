@@ -124,7 +124,7 @@ namespace SuiPOS.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCategory([FromBody] CategoryInputModel model)
         {
             if (!ModelState.IsValid)
