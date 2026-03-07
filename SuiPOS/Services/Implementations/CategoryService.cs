@@ -1,82 +1,87 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
 using SuiPOS.Data;
-using SuiPOS.Models;
+using SuiPOS.DTOs;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
     public class CategoryService : ICategoryService
     {
-        private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
 
-        public CategoryService(SuiPosDbContext context)
+        public CategoryService(IDbConnectionFactory dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<List<CategoryVM>> GetAllAsync()
         {
-            return await _context.Categories
-                .Select(c => new CategoryVM
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    ProductCount = c.Products.Count,
-                    IsActive = true
-                })
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            var categories = await conn.QueryAsync<CategoryVM>(
+                "sp_GetAllCategories",
+                commandType: CommandType.StoredProcedure
+            );
+
+            return categories.ToList();
         }
 
         public async Task<CategoryVM?> GetByIdAsync(Guid id)
         {
-            var category = await _context.Categories
-                .Where(c => c.Id == id)
-                .Select(c => new CategoryVM { Id = c.Id, Name = c.Name })
-                .FirstOrDefaultAsync();
-            return category;
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            return await conn.QueryFirstOrDefaultAsync<CategoryVM>(
+                "sp_GetCategoryById",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
         }
 
         public async Task<(bool Success, string Message)> CreateAsync(CategoryInputModel model)
         {
-            if (await _context.Categories.AnyAsync(c => c.Name == model.Name))
-                return (false, "Tên loại sản phẩm này đã tồn tại.");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            var category = new Category
-            {
-                Id = Guid.NewGuid(),
-                Name = model.Name
-            };
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_CreateCategory",
+                new { Name = model.Name },
+                commandType: CommandType.StoredProcedure
+            );
 
-            _context.Categories.Add(category);
-            var result = await _context.SaveChangesAsync();
-            return result > 0 ? (true, "Thêm loại sản phẩm thành công.") : (false, "Lỗi khi lưu dữ liệu.");
+            if (result == null) return (false, "Lỗi kết nối hệ thống.");
+
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<(bool Success, string Message)> UpdateAsync(Guid id, CategoryInputModel model)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null) return (false, "Không tìm thấy loại sản phẩm.");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            category.Name = model.Name;
-            var result = await _context.SaveChangesAsync();
-            return result > 0 ? (true, "Cập nhật thành công.") : (false, "Cập nhật thất bại.");
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_UpdateCategory",
+                new { Id = id, Name = model.Name },
+                commandType: CommandType.StoredProcedure
+            );
+
+            if (result == null) return (false, "Lỗi kết nối hệ thống.");
+
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<(bool Success, string Message)> DeleteAsync(Guid id)
         {
-            var category = await _context.Categories
-                .Include(c => c.Products)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            if (category == null) return (false, "Loại sản phẩm không tồn tại.");
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_DeleteCategory",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
 
-            if (category.Products.Any())
-                return (false, "Không thể xóa vì loại này đang chứa sản phẩm. Hãy xóa sản phẩm trước.");
+            if (result == null) return (false, "Lỗi kết nối hệ thống.");
 
-            _context.Categories.Remove(category);
-            var result = await _context.SaveChangesAsync();
-            return result > 0 ? (true, "Xóa thành công.") : (false, "Xóa thất bại.");
+            return (result.Success == 1, result.Message);
         }
     }
 }

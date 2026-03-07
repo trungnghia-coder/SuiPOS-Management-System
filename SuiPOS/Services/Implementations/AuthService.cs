@@ -1,8 +1,9 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Dapper;
 using SuiPOS.Data;
 using SuiPOS.DTOs.Auth;
 using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
@@ -19,96 +20,56 @@ namespace SuiPOS.Services.Implementations
         {
             using var conn = await _dbFactory.CreateConnectionAsync();
 
-            const string sql = @"
-            SELECT s.*, r.Name as RoleName 
-            FROM Staffs s 
-            LEFT JOIN Roles r ON s.RoleId = r.Id 
-            WHERE s.Username = @Username";
+            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "spStaff_GetByUsername",
+                new { Username = username },
+                commandType: CommandType.StoredProcedure
+            );
 
-            using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Username", username);
+            if (row == null) return null;
 
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+            return new Staff
             {
-                return MapReaderToStaff(reader);
-            }
-
-            return null;
+                Id = row.Id,
+                FullName = row.FullName,
+                Username = row.Username,
+                PasswordHash = row.PasswordHash,
+                Role = new Role { Name = row.RoleName ?? "N/A" }
+            };
         }
 
         public async Task<Staff?> LoginAsync(LoginDto loginDto)
         {
-            using var conn = await _dbFactory.CreateConnectionAsync();
-            const string sql = @"
-            SELECT s.*, r.Name as RoleName 
-            FROM Staffs s 
-            LEFT JOIN Roles r ON s.RoleId = r.Id 
-            WHERE s.Username = @Username";
+            var staff = await GetStaffByUsernameAsync(loginDto.Username);
 
-            using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Username", loginDto.Username);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+            if (staff != null && BCrypt.Net.BCrypt.Verify(loginDto.Password, staff.PasswordHash))
             {
-                var staff = MapReaderToStaff(reader);
-
-                if (BCrypt.Net.BCrypt.Verify(loginDto.Password, staff.PasswordHash))
-                    return staff;
+                return staff;
             }
+
             return null;
         }
 
         public async Task<(bool Success, string Message)> RegisterAsync(RegisterDto dto)
         {
-            if (await UsernameExistsAsync(dto.Username))
-                return (false, "Tên đăng nhập đã tồn tại!");
-
             using var conn = await _dbFactory.CreateConnectionAsync();
-            const string sql = @"
-            INSERT INTO Staffs (Id, FullName, Username, PasswordHash, RoleId) 
-            VALUES (@Id, @FullName, @Username, @PasswordHash, @RoleId)";
 
-            using var cmd = new SqlCommand(sql, conn);
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-            cmd.Parameters.AddWithValue("@Id", Guid.NewGuid());
-            cmd.Parameters.AddWithValue("@FullName", dto.FullName);
-            cmd.Parameters.AddWithValue("@Username", dto.Username);
-            cmd.Parameters.AddWithValue("@PasswordHash", passwordHash);
-            cmd.Parameters.AddWithValue("@RoleId", await GetDefaultRoleId(conn));
-
-            await cmd.ExecuteNonQueryAsync();
-            return (true, "Đăng ký thành công");
-        }
-
-        public async Task<bool> UsernameExistsAsync(string username)
-        {
-            using var conn = await _dbFactory.CreateConnectionAsync();
-            const string sql = "SELECT COUNT(1) FROM Staffs WHERE Username = @Username";
-            using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Username", username);
-            return (int)await cmd.ExecuteScalarAsync()! > 0;
-        }
-
-        private Staff MapReaderToStaff(SqlDataReader reader)
-        {
-            return new Staff
+            var parameters = new
             {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                FullName = reader.GetString(reader.GetOrdinal("FullName")),
-                Username = reader.GetString(reader.GetOrdinal("Username")),
-                PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                Role = new Role { Name = reader.GetString(reader.GetOrdinal("RoleName")) }
+                Id = Guid.NewGuid(),
+                FullName = dto.FullName,
+                Username = dto.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                RoleName = "Staff"
             };
-        }
 
-        private async Task<Guid> GetDefaultRoleId(SqlConnection conn)
-        {
-            const string sql = "SELECT TOP 1 Id FROM Roles WHERE Name = 'Staff'";
-            using var cmd = new SqlCommand(sql, conn);
-            return (Guid)(await cmd.ExecuteScalarAsync() ?? Guid.Empty);
+            var result = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "spStaff_Register",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return (result.Success == true || result.Success == 1, (string)result.Message);
         }
     }
 }

@@ -16,9 +16,9 @@ namespace ECommerceMVC.Helpers
         {
             var options = new CookieOptions
             {
-                HttpOnly = httpOnly, // ? Allow override for client-side access
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                HttpOnly = httpOnly,
+                Secure = context.Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
                 Expires = expireTimeInMinutes.HasValue
                     ? DateTime.UtcNow.AddMinutes(expireTimeInMinutes.Value)
                     : null

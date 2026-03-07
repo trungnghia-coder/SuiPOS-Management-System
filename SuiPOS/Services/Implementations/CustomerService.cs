@@ -1,114 +1,110 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
 using SuiPOS.Data;
+using SuiPOS.DTOs;
 using SuiPOS.DTOs.Customers;
-using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
     public class CustomerService : ICustomerService
     {
-        private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
 
-        public CustomerService(SuiPosDbContext context)
+        public CustomerService(IDbConnectionFactory dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<(bool Success, string Message)> CreateAsync(CustomerViewModel model)
         {
-            if (await _context.Customers.AnyAsync(c => c.Phone == model.PhoneNumber))
-            {
-                return (false, "Số điện thoại đã tồn tại trong hệ thống.");
-            }
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            var newCustomer = new Customer
-            {
-                Id = Guid.NewGuid(),
-                Name = model.Name,
-                Phone = model.PhoneNumber,
-                IsActive = true,
-                DebtAmount = 0,
-                TotalSpent = 0,
-                Points = 0,
-                CreatedAt = DateTime.UtcNow
-            };
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_CreateCustomer",
+                new
+                {
+                    Name = model.Name,
+                    Phone = model.PhoneNumber
+                },
+                commandType: CommandType.StoredProcedure
+            );
 
-            _context.Customers.Add(newCustomer);
-            await _context.SaveChangesAsync();
-            return (true, "Khách hàng đã được tạo thành công.");
+            if (result == null) return (false, "Lỗi kết nối hệ thống.");
+
+            return (result.Success == 1, result.Message);
         }
 
-        public async Task<bool> DeleteAsync(Guid id)
+        public async Task<(bool Success, string Message)> DeleteAsync(Guid id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null) return false;
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            customer.IsActive = false;
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_DeleteCustomer",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
 
-            _context.Customers.Update(customer);
-            return await _context.SaveChangesAsync() > 0;
+            return (result?.Success == 1, result?.Message ?? "Lỗi hệ thống");
         }
 
         public async Task<List<CustomerTableDto>> GetAllAsync()
         {
-            return await _context.Database
-                .SqlQueryRaw<CustomerTableDto>("EXEC GetCustomerList")
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            var customers = await conn.QueryAsync<CustomerTableDto>(
+                "GetCustomerList",
+                commandType: CommandType.StoredProcedure
+            );
+
+            return customers.ToList();
         }
 
         public async Task<CustomerViewModel?> GetByIdAsync(Guid id)
         {
-            var customer = await _context.Customers.FindAsync(id);
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            if (customer == null) return null;
-
-            return new CustomerViewModel
-            {
-                Id = customer.Id,
-                Name = customer.Name,
-                PhoneNumber = customer.Phone ?? string.Empty,
-                DebtAmount = customer.DebtAmount
-            };
+            return await conn.QueryFirstOrDefaultAsync<CustomerViewModel>(
+                "sp_GetCustomerById",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
         }
 
         public async Task<(bool Success, string Message)> UpdateAsync(Guid id, CustomerViewModel model)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null) return (false, "Không tìm tháy khách hàng");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            customer.Name = model.Name;
-            customer.Phone = model.PhoneNumber;
-            customer.DebtAmount = model.DebtAmount;
-            customer.TotalSpent = model.TotalSpent;
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_UpdateCustomer",
+                new
+                {
+                    Id = id,
+                    Name = model.Name,
+                    Phone = model.PhoneNumber,
+                    DebtAmount = model.DebtAmount,
+                    TotalSpent = model.TotalSpent
+                },
+                commandType: CommandType.StoredProcedure
+            );
 
-            _context.Customers.Update(customer);
+            if (result == null) return (false, "Lỗi hệ thống.");
 
-            var result = await _context.SaveChangesAsync();
-
-            if (result > 0)
-            {
-                return (true, "Khách hàng đã cập nhật thành công.");
-            }
-
-            return (false, "Cập nhật thất bại, vui lòng thử lại.");
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<List<CustomerSearchVM>> SearchAsync(string query)
         {
-            return await _context.Customers
-                .Where(c => c.IsActive &&
-                    (c.Name.Contains(query) || c.Phone.Contains(query)))
-                .Select(c => new CustomerSearchVM
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Phone = c.Phone
-                })
-                .OrderBy(c => c.Name)
-                .Take(10)
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            var results = await conn.QueryAsync<CustomerSearchVM>(
+                "sp_SearchCustomers",
+                new { Query = query },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return results.ToList();
         }
     }
 }

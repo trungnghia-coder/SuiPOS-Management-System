@@ -1,92 +1,42 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using Microsoft.EntityFrameworkCore;
 using SuiPOS.Data;
 using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
+using System.Text.Json;
 
 namespace SuiPOS.Services.Implementations
 {
     public class OrderService : IOrderService
     {
         private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
 
-        public OrderService(SuiPosDbContext context)
+        public OrderService(SuiPosDbContext context, IDbConnectionFactory dbFactory)
         {
             _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<(bool Success, string Message, Guid? OrderId)> CreateOrderAsync(OrderViewModel model)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            try
-            {
-                if (model.Items == null || !model.Items.Any())
-                {
-                    return (false, "Giỏ hàng trống", null);
-                }
+            string jsonOrder = JsonSerializer.Serialize(model);
 
-                var totalItemsPrice = model.Items.Sum(x => x.Quantity * x.UnitPrice);
-                var finalAmount = totalItemsPrice - (model.DiscountAmount ?? 0);
+            var result = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "sp_CreateOrder",
+                new { OrderData = jsonOrder },
+                commandType: CommandType.StoredProcedure
+            );
 
-                // Validate payment amount
-                var validationResult = ValidatePaymentAmount(model.CustomerId, model.AmountReceived, finalAmount);
-                if (!validationResult.IsValid)
-                {
-                    return (false, validationResult.ErrorMessage!, null);
-                }
-
-                var orderCode = GenerateOrderCode();
-                var order = CreateOrderEntity(model, orderCode, totalItemsPrice, finalAmount);
-
-                _context.Orders.Add(order);
-
-                // Process order items and update stock
-                var stockUpdateResult = await ProcessOrderItemsAsync(order, model.Items);
-                if (!stockUpdateResult.Success)
-                {
-                    await transaction.RollbackAsync();
-                    return (false, stockUpdateResult.Message, null);
-                }
-
-                // Add payments
-                AddPaymentsToOrder(order, model.Payments);
-
-                // Update customer data (SpentTotal and Debt)
-                if (model.CustomerId.HasValue)
-                {
-                    await UpdateCustomerFinancialDataAsync(model.CustomerId.Value, finalAmount, model.AmountReceived);
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return (true, "Tạo đơn hàng thành công", order.Id);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return (false, $"Lỗi: {ex.Message}", null);
-            }
-        }
-
-        private (bool IsValid, string? ErrorMessage) ValidatePaymentAmount(Guid? customerId, decimal amountReceived, decimal finalAmount)
-        {
-            var isGuestCustomer = !customerId.HasValue;
-            var hasUnpaidAmount = amountReceived < finalAmount;
-
-            if (isGuestCustomer && hasUnpaidAmount)
-            {
-                var shortage = finalAmount - amountReceived;
-                return (false, $"Khách lẻ phải thanh toán đủ! Còn thiếu: {shortage:N0}đ");
-            }
-
-            return (true, null);
-        }
-
-        private string GenerateOrderCode()
-        {
-            return "ORD" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            return (
+                result.Success == 1,
+                (string)result.Message,
+                result.Success == 1 ? (Guid?)result.OrderId : null
+            );
         }
 
         private Order CreateOrderEntity(OrderViewModel model, string orderCode, decimal totalItemsPrice, decimal finalAmount)

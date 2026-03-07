@@ -1,248 +1,181 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
 using SuiPOS.Data;
-using SuiPOS.Models;
+using SuiPOS.DTOs;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
     public class AttributeService : IAttributeService
     {
-        private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
 
-        public AttributeService(SuiPosDbContext context)
+        public AttributeService(IDbConnectionFactory dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<List<AttributeListVM>> GetAllAsync()
         {
-            return await _context.ProductAttributes
-                .Include(a => a.Values)
-                .Select(a => new AttributeListVM
-                {
-                    Id = a.Id,
-                    Name = a.Name,
-                    ValueCount = a.Values.Count,
-                    SampleValues = a.Values.Take(3).Select(v => v.Value).ToList()
-                })
-                .OrderBy(a => a.Name)
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+            var result = await conn.QueryAsync<dynamic>("sp_GetAllProductAttributes", commandType: CommandType.StoredProcedure);
+
+            return result.Select(MapToAttributeListVM).ToList();
         }
 
         public async Task<List<AttributeVM>> GetAllWithValuesAsync()
         {
-            return await _context.ProductAttributes
-                .Include(a => a.Values)
-                .Select(a => new AttributeVM
-                {
-                    Id = a.Id,
-                    Name = a.Name,
-                    Values = a.Values.Select(v => new AttributeValueVM
-                    {
-                        Id = v.Id,
-                        Value = v.Value,
-                        AttributeId = v.AttributeId
-                    }).ToList()
-                })
-                .OrderBy(a => a.Name)
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            var result = await conn.QueryAsync<dynamic>(
+                "sp_GetAllAttributesWithValues",
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.Select(a => new AttributeVM
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Values = string.IsNullOrEmpty((string)a.ValuesJson)
+                         ? new List<AttributeValueVM>()
+                         : Newtonsoft.Json.JsonConvert.DeserializeObject<List<AttributeValueVM>>((string)a.ValuesJson)
+            }).ToList();
         }
 
         public async Task<AttributeVM?> GetByIdAsync(Guid id)
         {
-            var attribute = await _context.ProductAttributes
-                .Include(a => a.Values)
-                .FirstOrDefaultAsync(a => a.Id == id);
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-            if (attribute == null) return null;
+            var a = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "sp_GetAttributeById",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
+
+            if (a == null) return null;
 
             return new AttributeVM
             {
-                Id = attribute.Id,
-                Name = attribute.Name,
-                Values = attribute.Values.Select(v => new AttributeValueVM
-                {
-                    Id = v.Id,
-                    Value = v.Value,
-                    AttributeId = v.AttributeId
-                }).ToList()
+                Id = a.Id,
+                Name = a.Name,
+                Values = string.IsNullOrEmpty((string)a.ValuesJson)
+                         ? new List<AttributeValueVM>()
+                         : Newtonsoft.Json.JsonConvert.DeserializeObject<List<AttributeValueVM>>((string)a.ValuesJson)
             };
         }
 
         public async Task<(bool Success, string Message)> CreateAttributeAsync(string name)
         {
-            try
-            {
-                if (await _context.ProductAttributes.AnyAsync(a => a.Name == name))
-                    return (false, "Thuộc tính này đã tồn tại");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                var attribute = new ProductAttribute
-                {
-                    Id = Guid.NewGuid(),
-                    Name = name
-                };
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_CreateProductAttribute",
+                new { Name = name },
+                commandType: CommandType.StoredProcedure
+            );
 
-                _context.ProductAttributes.Add(attribute);
-                await _context.SaveChangesAsync();
-
-                return (true, "Tạo thuộc tính thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result?.Success == 1, result?.Message ?? "Lỗi");
         }
 
         public async Task<(bool Success, string Message)> UpdateAttributeAsync(Guid id, string name)
         {
-            try
-            {
-                var attribute = await _context.ProductAttributes.FindAsync(id);
-                if (attribute == null)
-                    return (false, "Không tìm thấy thuộc tính");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                // Check duplicate name (except current)
-                if (await _context.ProductAttributes.AnyAsync(a => a.Name == name && a.Id != id))
-                    return (false, "Tên thuộc tính đã tồn tại");
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_UpdateProductAttribute",
+                new { Id = id, Name = name },
+                commandType: CommandType.StoredProcedure
+            );
 
-                attribute.Name = name;
-                await _context.SaveChangesAsync();
-
-                return (true, "Cập nhật thuộc tính thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result?.Success == 1, result?.Message ?? "Lỗi");
         }
 
         public async Task<(bool Success, string Message)> DeleteAttributeAsync(Guid id)
         {
-            try
-            {
-                var attribute = await _context.ProductAttributes
-                    .Include(a => a.Values)
-                    .FirstOrDefaultAsync(a => a.Id == id);
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                if (attribute == null)
-                    return (false, "Không tìm thấy thuộc tính");
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_DeleteProductAttribute",
+                new { Id = id },
+                commandType: CommandType.StoredProcedure
+            );
 
-                // Check if any product is using this attribute
-                var isUsed = await _context.ProductVariants
-                    .AnyAsync(pv => pv.SelectedValues.Any(sv => sv.AttributeId == id));
+            if (result == null) return (false, "Không nhận được phản hồi từ hệ thống");
 
-                if (isUsed)
-                    return (false, "Không thể xóa thuộc tính đang được sử dụng bởi sản phẩm");
-
-                _context.ProductAttributes.Remove(attribute);
-                await _context.SaveChangesAsync();
-
-                return (true, "Xóa thuộc tính thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result.Success == 1, result.Message ?? "Không có thông báo");
         }
 
         public async Task<(bool Success, string Message)> AddValueAsync(Guid attributeId, string value)
         {
-            try
-            {
-                var attribute = await _context.ProductAttributes.FindAsync(attributeId);
-                if (attribute == null)
-                    return (false, "Không tìm thấy thuộc tính");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                // Check duplicate value
-                var exists = await _context.AttributeValues
-                    .AnyAsync(v => v.AttributeId == attributeId && v.Value == value);
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_AddAttributeValue",
+                new { AttributeId = attributeId, Value = value },
+                commandType: CommandType.StoredProcedure
+            );
 
-                if (exists)
-                    return (false, "Giá trị này đã tồn tại");
+            if (result == null) return (false, "Lỗi kết nối");
 
-                var attrValue = new AttributeValue
-                {
-                    Id = Guid.NewGuid(),
-                    AttributeId = attributeId,
-                    Value = value
-                };
-
-                _context.AttributeValues.Add(attrValue);
-                await _context.SaveChangesAsync();
-
-                return (true, "Thêm giá trị thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<(bool Success, string Message)> UpdateValueAsync(Guid valueId, string value)
         {
-            try
-            {
-                var attrValue = await _context.AttributeValues.FindAsync(valueId);
-                if (attrValue == null)
-                    return (false, "Không tìm thấy giá trị");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                // Check duplicate value (except current)
-                var exists = await _context.AttributeValues
-                    .AnyAsync(v => v.AttributeId == attrValue.AttributeId && v.Value == value && v.Id != valueId);
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_UpdateAttributeValue",
+                new { Id = valueId, Value = value },
+                commandType: CommandType.StoredProcedure
+            );
 
-                if (exists)
-                    return (false, "Giá trị này đã tồn tại");
+            if (result == null) return (false, "Lỗi kết nối hệ thống");
 
-                attrValue.Value = value;
-                await _context.SaveChangesAsync();
-
-                return (true, "Cập nhật giá trị thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<(bool Success, string Message)> DeleteValueAsync(Guid valueId)
         {
-            try
-            {
-                var val = await _context.AttributeValues.FindAsync(valueId);
-                if (val == null)
-                    return (false, "Không tìm thấy giá trị");
+            using var conn = await _dbFactory.CreateConnectionAsync();
 
-                // Check if any product variant is using this value
-                var isUsed = await _context.ProductVariants
-                    .AnyAsync(pv => pv.SelectedValues.Any(sv => sv.Id == valueId));
+            var result = await conn.QueryFirstOrDefaultAsync<DbResponse>(
+                "sp_DeleteAttributeValue",
+                new { Id = valueId },
+                commandType: CommandType.StoredProcedure
+            );
 
-                if (isUsed)
-                    return (false, "Không thể xóa giá trị đang được sử dụng bởi sản phẩm");
+            if (result == null) return (false, "Lỗi kết nối hệ thống");
 
-                _context.AttributeValues.Remove(val);
-                await _context.SaveChangesAsync();
-
-                return (true, "Xóa giá trị thành công");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Lỗi: {ex.Message}");
-            }
+            return (result.Success == 1, result.Message);
         }
 
         public async Task<List<AttributeValueVM>> GetValuesByAttributeIdAsync(Guid attributeId)
         {
-            return await _context.AttributeValues
-                .Where(v => v.AttributeId == attributeId)
-                .Select(v => new AttributeValueVM
-                {
-                    Id = v.Id,
-                    Value = v.Value,
-                    AttributeId = v.AttributeId
-                })
-                .OrderBy(v => v.Value)
-                .ToListAsync();
+            using var conn = await _dbFactory.CreateConnectionAsync();
+
+            var values = await conn.QueryAsync<AttributeValueVM>(
+                "sp_GetValuesByAttributeId",
+                new { AttributeId = attributeId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            return values.ToList();
+        }
+
+        private AttributeListVM MapToAttributeListVM(dynamic a)
+        {
+            string rawValues = a.SampleValuesRaw?.ToString();
+            return new AttributeListVM
+            {
+                Id = a.Id,
+                Name = a.Name,
+                ValueCount = (int)(a.ValueCount ?? 0),
+                SampleValues = string.IsNullOrEmpty(rawValues)
+                    ? new List<string>()
+                    : rawValues.Split(", ").ToList()
+            };
         }
     }
 }

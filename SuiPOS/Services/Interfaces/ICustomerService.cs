@@ -7,7 +7,7 @@ namespace SuiPOS.Services.Interfaces
     {
         Task<List<CustomerTableDto>> GetAllAsync();
         Task<CustomerViewModel?> GetByIdAsync(Guid id);
-        Task<bool> DeleteAsync(Guid id);
+        Task<(bool Success, string Message)> DeleteAsync(Guid id);
         Task<(bool Success, string Message)> CreateAsync(CustomerViewModel model);
         Task<(bool Success, string Message)> UpdateAsync(Guid id, CustomerViewModel model);
         Task<List<CustomerSearchVM>> SearchAsync(string query);
