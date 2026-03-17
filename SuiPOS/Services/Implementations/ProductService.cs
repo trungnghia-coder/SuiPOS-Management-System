@@ -9,13 +9,13 @@ namespace SuiPOS.Services.Implementations
 {
     public class ProductService : IProductService
     {
-        private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IFileService _fileService;
 
-        public ProductService(SuiPosDbContext context, IFileService fileService)
+        public ProductService(IFileService fileService, IDbConnectionFactory dbFactory)
         {
-            _context = context;
             _fileService = fileService;
+            _dbFactory = dbFactory;
         }
 
         public async Task<(bool Success, string Message)> CreateAsync(ProductInputVM model)
@@ -30,7 +30,7 @@ namespace SuiPOS.Services.Implementations
 
                 var variantDataTable = ToVariantDataTable(model.Variants);
 
-                var connection = _context.Database.GetDbConnection();
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", Guid.NewGuid());
@@ -57,15 +57,24 @@ namespace SuiPOS.Services.Implementations
 
         public async Task<(bool Success, string Message)> DeleteAsync(Guid id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return (false, "Sản phẩm không tồn tại.");
+            try
+            {
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-            product.isActive = false;
+                var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_DeleteProduct",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure
+                );
 
-            _context.Products.Update(product);
+                if (result == null) return (false, "Lỗi thực thi hệ thống.");
 
-            await _context.SaveChangesAsync();
-            return (true, "Xóa thành công.");
+                return (result.Success == 1, result.Message);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi hệ thống: {ex.Message}");
+            }
         }
 
         public async Task<List<ProductVM>> GetAllAsync(int pageNumber, int pageSize)
@@ -73,7 +82,7 @@ namespace SuiPOS.Services.Implementations
             int actualPage = pageNumber > 0 ? pageNumber : 1;
             int actualSize = pageSize > 0 ? pageSize : 50;
 
-            var connection = _context.Database.GetDbConnection();
+            using var connection = await _dbFactory.CreateConnectionAsync();
 
             var result = await connection.QueryAsync<ProductVM>(
                 "GetProductList",
@@ -88,7 +97,7 @@ namespace SuiPOS.Services.Implementations
         {
             try
             {
-                var connection = _context.Database.GetDbConnection();
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
                 using var multi = await connection.QueryMultipleAsync(
                     "sp_GetProductById",
@@ -127,10 +136,12 @@ namespace SuiPOS.Services.Implementations
         {
             try
             {
-                var currentImageUrl = await _context.Products
-                    .Where(p => p.Id == id)
-                    .Select(p => p.ImageUrl)
-                    .FirstOrDefaultAsync();
+                using var connection = await _dbFactory.CreateConnectionAsync();
+
+                string? currentImageUrl = await connection.QueryFirstOrDefaultAsync<string>(
+                    "SELECT ImageUrl FROM Products WHERE Id = @Id",
+                    new { Id = id }
+                );
 
                 if (currentImageUrl == null) return (false, "Sản phẩm không tồn tại.");
 
@@ -145,7 +156,6 @@ namespace SuiPOS.Services.Implementations
 
                 var variantTable = ToVariantDataTable(model.Variants);
 
-                var connection = _context.Database.GetDbConnection();
                 var parameters = new DynamicParameters();
                 parameters.Add("@Id", id);
                 parameters.Add("@Name", model.Name);
@@ -153,14 +163,17 @@ namespace SuiPOS.Services.Implementations
                 parameters.Add("@ImageUrl", newImageUrl);
                 parameters.Add("@Variants", variantTable.AsTableValuedParameter("dbo.VariantType"));
 
-                await connection.ExecuteAsync("sp_UpdateProduct", parameters, commandType: CommandType.StoredProcedure);
+                await connection.ExecuteAsync(
+                    "sp_UpdateProduct",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
                 return (true, "Cập nhật sản phẩm thành công!");
             }
             catch (Exception ex)
             {
-                var msg = ex.InnerException?.Message ?? ex.Message;
-                return (false, $"Lỗi cập nhật: {msg}");
+                return (false, $"Lỗi cập nhật: {ex.Message}");
             }
         }
 
