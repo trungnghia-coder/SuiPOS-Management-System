@@ -1,165 +1,115 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Dapper;
 using SuiPOS.Data;
 using SuiPOS.Models;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
+using System.Data;
 
 namespace SuiPOS.Services.Implementations
 {
     public class PromotionService : IPromotionService
     {
-        private readonly SuiPosDbContext _context;
+        private readonly IDbConnectionFactory _dbFactory;
 
-        public PromotionService(SuiPosDbContext context)
+        public PromotionService(IDbConnectionFactory dbFactory)
         {
-            _context = context;
+            _dbFactory = dbFactory;
         }
 
         public async Task<List<PromotionListVM>> GetAllAsync()
         {
-            var now = DateTime.Now;
-            
-            var promotions = await _context.Promotions
-                .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new PromotionListVM
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Code = p.Code,
-                    Type = p.Type.ToString(),
-                    DiscountValue = p.DiscountValue,
-                    MinOrderAmount = p.MinOrderAmount,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    IsActive = p.IsActive,
-                    IsValid = p.IsActive && p.StartDate <= now && p.EndDate >= now
-                })
-                .ToListAsync();
+            try
+            {
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-            return promotions;
-        }
+                var promotions = await connection.QueryAsync<PromotionListVM>(
+                    "sp_GetAllPromotions",
+                    commandType: CommandType.StoredProcedure
+                );
 
-        public async Task<List<PromotionListVM>> GetActivePromotionsAsync()
-        {
-            var now = DateTime.Now;
-            
-            var promotions = await _context.Promotions
-                .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now)
-                .OrderBy(p => p.Name)
-                .Select(p => new PromotionListVM
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Code = p.Code,
-                    Type = p.Type.ToString(),
-                    DiscountValue = p.DiscountValue,
-                    MinOrderAmount = p.MinOrderAmount,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    IsActive = p.IsActive,
-                    IsValid = true
-                })
-                .ToListAsync();
-
-            return promotions;
+                return promotions.ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<PromotionListVM>();
+            }
         }
 
         public async Task<List<PromotionListVM>> GetValidPromotionsForOrderAsync(decimal orderAmount)
         {
-            var now = DateTime.Now;
-            
-            Console.WriteLine($"?? Current time: {now:yyyy-MM-dd HH:mm:ss}");
-            Console.WriteLine($"?? Order amount: {orderAmount}");
-
-            var validPromotions = await _context.Promotions
-                .Where(p => p.IsActive
-                    && p.StartDate <= now
-                    && p.EndDate >= now
-                    && (!p.MinOrderAmount.HasValue || p.MinOrderAmount.Value <= orderAmount))
-                .OrderByDescending(p => p.MinOrderAmount.HasValue && p.MinOrderAmount.Value <= orderAmount ? 1 : 0)
-                .ThenBy(p => p.Name)
-                .Select(p => new PromotionListVM
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Code = p.Code,
-                    Type = p.Type.ToString(),
-                    DiscountValue = p.DiscountValue,
-                    MinOrderAmount = p.MinOrderAmount,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    IsActive = p.IsActive,
-                    IsValid = (!p.MinOrderAmount.HasValue || p.MinOrderAmount.Value <= orderAmount)
-                })
-                .ToListAsync();
-            
-            Console.WriteLine($"? Found {validPromotions.Count} valid promotions");
-            foreach (var p in validPromotions)
+            try
             {
-                Console.WriteLine($"   - {p.Name} ({p.Code}): {p.StartDate:yyyy-MM-dd} ~ {p.EndDate:yyyy-MM-dd}");
-            }
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-            return validPromotions;
+                var validPromotions = await connection.QueryAsync<PromotionListVM>(
+                    "sp_GetValidPromotionsForOrder",
+                    new { OrderAmount = orderAmount },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return validPromotions.ToList();
+            }
+            catch (Exception ex)
+            {
+                return new List<PromotionListVM>();
+            }
         }
 
         public async Task<PromotionVM?> GetByIdAsync(Guid id)
         {
-            var promotion = await _context.Promotions.FindAsync(id);
-            if (promotion == null) return null;
-
-            return new PromotionVM
+            try
             {
-                Id = promotion.Id,
-                Name = promotion.Name,
-                Code = promotion.Code,
-                Type = promotion.Type.ToString(),
-                DiscountValue = promotion.DiscountValue,
-                MinOrderAmount = promotion.MinOrderAmount,
-                MaxDiscountAmount = promotion.MaxDiscountAmount,
-                StartDate = promotion.StartDate,
-                EndDate = promotion.EndDate,
-                IsActive = promotion.IsActive
-            };
+                using var connection = await _dbFactory.CreateConnectionAsync();
+
+                var promotion = await connection.QueryFirstOrDefaultAsync<PromotionVM>(
+                    "sp_GetPromotionById",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return promotion;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         public async Task<(bool Success, string Message)> CreateAsync(PromotionVM model)
         {
             try
             {
-                var exists = await _context.Promotions.AnyAsync(p => p.Code == model.Code);
-                if (exists)
-                {
-                    return (false, "Mã khuy?n mãi ?ã t?n t?i");
-                }
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-                if (model.EndDate <= model.StartDate)
-                {
-                    return (false, "Ngày k?t thúc ph?i sau ngày b?t ??u");
-                }
+                int promotionType = (int)Enum.Parse<Promotion.DiscountType>(model.Type);
 
-                var promotion = new Promotion
+                var parameters = new
                 {
                     Id = Guid.NewGuid(),
-                    Name = model.Name,
-                    Code = model.Code,
-                    Type = Enum.Parse<Promotion.DiscountType>(model.Type),
-                    DiscountValue = model.DiscountValue,
-                    MinOrderAmount = model.MinOrderAmount,
-                    MaxDiscountAmount = model.MaxDiscountAmount,
-                    StartDate = model.StartDate,
-                    EndDate = model.EndDate,
-                    IsActive = model.IsActive,
-                    CreatedAt = DateTime.UtcNow
+                    model.Name,
+                    model.Code,
+                    Type = promotionType,
+                    model.DiscountValue,
+                    model.MinOrderAmount,
+                    model.MaxDiscountAmount,
+                    model.StartDate,
+                    model.EndDate,
+                    model.IsActive
                 };
 
-                _context.Promotions.Add(promotion);
-                await _context.SaveChangesAsync();
+                var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_CreatePromotion",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
-                return (true, "Thêm khuy?n mãi thành công");
+                if (result == null) return (false, "Lá»—i thá»±c thi há»‡ thá»‘ng.");
+
+                return (result.Success == 1, (string)result.Message);
             }
             catch (Exception ex)
             {
-                return (false, $"L?i: {ex.Message}");
+                return (false, $"Lá»—i há»‡ thá»‘ng: {ex.Message}");
             }
         }
 
@@ -167,42 +117,37 @@ namespace SuiPOS.Services.Implementations
         {
             try
             {
-                var promotion = await _context.Promotions.FindAsync(model.Id);
-                if (promotion == null)
+                using var connection = await _dbFactory.CreateConnectionAsync();
+
+                int promotionType = (int)Enum.Parse<Promotion.DiscountType>(model.Type);
+
+                var parameters = new
                 {
-                    return (false, "Không tìm th?y khuy?n mãi");
-                }
+                    model.Id,
+                    model.Name,
+                    model.Code,
+                    Type = promotionType,
+                    model.DiscountValue,
+                    model.MinOrderAmount,
+                    model.MaxDiscountAmount,
+                    model.StartDate,
+                    model.EndDate,
+                    model.IsActive
+                };
 
-                var exists = await _context.Promotions
-                    .AnyAsync(p => p.Code == model.Code && p.Id != model.Id);
-                if (exists)
-                {
-                    return (false, "Mã khuy?n mãi ?ã t?n t?i");
-                }
+                var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_UpdatePromotion",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
-                if (model.EndDate <= model.StartDate)
-                {
-                    return (false, "Ngày k?t thúc ph?i sau ngày b?t ??u");
-                }
+                if (result == null) return (false, "Lá»—i thá»±c thi há»‡ thá»‘ng.");
 
-                promotion.Name = model.Name;
-                promotion.Code = model.Code;
-                promotion.Type = Enum.Parse<Promotion.DiscountType>(model.Type);
-                promotion.DiscountValue = model.DiscountValue;
-                promotion.MinOrderAmount = model.MinOrderAmount;
-                promotion.MaxDiscountAmount = model.MaxDiscountAmount;
-                promotion.StartDate = model.StartDate;
-                promotion.EndDate = model.EndDate;
-                promotion.IsActive = model.IsActive;
-                promotion.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                return (true, "C?p nh?t khuy?n mãi thành công");
+                return (result.Success == 1, (string)result.Message);
             }
             catch (Exception ex)
             {
-                return (false, $"L?i: {ex.Message}");
+                return (false, $"Lá»—i há»‡ thá»‘ng: {ex.Message}");
             }
         }
 
@@ -210,20 +155,21 @@ namespace SuiPOS.Services.Implementations
         {
             try
             {
-                var promotion = await _context.Promotions.FindAsync(id);
-                if (promotion == null)
-                {
-                    return (false, "Không tìm th?y khuy?n mãi");
-                }
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-                _context.Promotions.Remove(promotion);
-                await _context.SaveChangesAsync();
+                var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_DeletePromotion",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure
+                );
 
-                return (true, "Xóa khuy?n mãi thành công");
+                if (result == null) return (false, "Lá»—i thá»±c thi há»‡ thá»‘ng.");
+
+                return (result.Success == 1, (string)result.Message);
             }
             catch (Exception ex)
             {
-                return (false, $"L?i: {ex.Message}");
+                return (false, $"Lá»—i há»‡ thá»‘ng: {ex.Message}");
             }
         }
 
@@ -231,22 +177,21 @@ namespace SuiPOS.Services.Implementations
         {
             try
             {
-                var promotion = await _context.Promotions.FindAsync(id);
-                if (promotion == null)
-                {
-                    return (false, "Không tìm th?y khuy?n mãi");
-                }
+                using var connection = await _dbFactory.CreateConnectionAsync();
 
-                promotion.IsActive = !promotion.IsActive;
-                promotion.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_TogglePromotionActive",
+                    new { Id = id },
+                    commandType: CommandType.StoredProcedure
+                );
 
-                var status = promotion.IsActive ? "kích ho?t" : "vô hi?u hóa";
-                return (true, $"?ã {status} khuy?n mãi");
+                if (result == null) return (false, "Lá»—i thá»±c thi há»‡ thá»‘ng.");
+
+                return (result.Success == 1, (string)result.Message);
             }
             catch (Exception ex)
             {
-                return (false, $"L?i: {ex.Message}");
+                return (false, $"Lá»—i há»‡ thá»‘ng: {ex.Message}");
             }
         }
     }
