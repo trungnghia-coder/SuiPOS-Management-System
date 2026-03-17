@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SuiPOS.Services.Interfaces;
 using SuiPOS.ViewModels;
 
@@ -58,7 +58,6 @@ namespace SuiPOS.Controllers
                     { "printer_name", model.PrinterName }
                 };
 
-                // Get staff ID from cookie
                 var staffId = Request.Cookies["staff_id"];
                 Guid? updatedBy = null;
                 if (Guid.TryParse(staffId, out var parsedStaffId))
@@ -68,7 +67,7 @@ namespace SuiPOS.Controllers
 
                 await _settingService.UpdateSettingsAsync(settings, updatedBy);
 
-                return Json(new { success = true, message = "L?u c?u h�nh th�nh c�ng!" });
+                return Json(new { success = true, message = "Lưu cấu hình thành công!" });
             }
             catch (Exception ex)
             {
